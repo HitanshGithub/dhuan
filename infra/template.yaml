@@ -104,22 +104,44 @@ Resources:
         SigningBehavior: always
         SigningProtocol: sigv4
 
+  # CloudFront adds CORS headers only to requests that carry an Origin header, so the Origin header has to be part of
+  # the cache key: otherwise a copy cached from a plain <img> request (no CORS headers) is served to the map's fetch()
+  # and the browser blocks it.
+  DataCache:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub ${AWS::StackName}-data-cache
+        Comment: Cache by path and Origin header; TTL from the objects' Cache-Control
+        MinTTL: 1
+        DefaultTTL: 86400
+        MaxTTL: 31536000
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          CookiesConfig:
+            CookieBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+          HeadersConfig:
+            HeaderBehavior: whitelist
+            Headers: [Origin]
+
   DataHeaders:
     Type: AWS::CloudFront::ResponseHeadersPolicy
     Properties:
       ResponseHeadersPolicyConfig:
         Name: !Sub ${AWS::StackName}-data-cors
-        # Always allow cross-origin reads. CloudFront's CORS policies only add the header when the request carries an
-        # Origin header, and a response cached from a plain <img> preload would then block the map's fetch().
-        Comment: Always-on CORS for the forecast frames
-        CustomHeadersConfig:
-          Items:
-            - Header: Access-Control-Allow-Origin
-              Value: "*"
-              Override: true
-            - Header: Access-Control-Allow-Methods
-              Value: GET, HEAD, OPTIONS
-              Override: true
+        Comment: CORS for the forecast frames
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowHeaders:
+            Items: ["*"]
+          AccessControlAllowMethods:
+            Items: [GET, HEAD, OPTIONS]
+          AccessControlAllowOrigins:
+            Items: ["*"]
+          OriginOverride: true
 
   DataDistribution:
     Type: AWS::CloudFront::Distribution
@@ -141,7 +163,7 @@ Resources:
           AllowedMethods: [GET, HEAD, OPTIONS]
           CachedMethods: [GET, HEAD, OPTIONS]
           Compress: true
-          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized (honours the objects' Cache-Control)
+          CachePolicyId: !Ref DataCache
           OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf # Managed-CORS-S3Origin
           ResponseHeadersPolicyId: !Ref DataHeaders
 
