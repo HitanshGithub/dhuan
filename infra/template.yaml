@@ -104,6 +104,23 @@ Resources:
         SigningBehavior: always
         SigningProtocol: sigv4
 
+  DataHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub ${AWS::StackName}-data-cors
+        # Always allow cross-origin reads. CloudFront's CORS policies only add the header when the request carries an
+        # Origin header, and a response cached from a plain <img> preload would then block the map's fetch().
+        Comment: Always-on CORS for the forecast frames
+        CustomHeadersConfig:
+          Items:
+            - Header: Access-Control-Allow-Origin
+              Value: "*"
+              Override: true
+            - Header: Access-Control-Allow-Methods
+              Value: GET, HEAD, OPTIONS
+              Override: true
+
   DataDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -126,7 +143,7 @@ Resources:
           Compress: true
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized (honours the objects' Cache-Control)
           OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf # Managed-CORS-S3Origin
-          ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c # Managed-SimpleCORS
+          ResponseHeadersPolicyId: !Ref DataHeaders
 
   # ---------------------------------------------------------------- subscribers
   SubscribersTable:

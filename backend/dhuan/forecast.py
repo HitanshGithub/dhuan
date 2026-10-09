@@ -44,7 +44,8 @@ def latest_run(store=None) -> Run | None:
 
 
 def _ist(t: datetime) -> str:
-    return t.astimezone(IST).strftime("%a %d %b, %I %p").replace(" 0", " ").lstrip("0")
+    """'Saturday 10 Oct, 6 AM': full weekday names, because the advisory model mistranslated abbreviations."""
+    return t.astimezone(IST).strftime("%A %d %b, %I %p").replace(" 0", " ").lstrip("0")
 
 
 def point_forecast(lat: float, lon: float, run: Run | None = None) -> dict | None:

@@ -83,6 +83,13 @@ def step_simulate(run_id: str, store=None, now: datetime | None = None) -> dict:
     np.savez_compressed(buf, ids=sim.attr_ids, pct=sim.attr_pct)
     store.put(f"runs/{run_id}/attr.npz", buf.getvalue())
     put_json(store, f"runs/{run_id}/fires.geojson", fire_src.to_geojson(fires, districts))
+    # the 100 m wind per frame on the 1-degree grid, so the map can animate the flow that carries the smoke (~100 KB)
+    idx = [int(np.clip(round(wind.hour_index(t)), 0, len(wind.times) - 1)) for t in sim.times]
+    put_json(store, f"runs/{run_id}/winds.json", {
+        "lats": wind.lats.tolist(), "lons": wind.lons.tolist(),
+        "u": [np.round(wind.u100[i].astype(float), 1).ravel().tolist() for i in idx],
+        "v": [np.round(wind.v100[i].astype(float), 1).ravel().tolist() for i in idx],
+    })
 
     by_state: dict[str, int] = {}
     for f in fires:

@@ -188,7 +188,7 @@ function Chart({ fc, frame, onFrame }: { fc: PointForecast; frame: number; onFra
         ))}
       </div>
       <div className="relative mt-1 h-4 text-[10px] text-mist/60">
-        <span className="absolute left-0">now</span>
+        {(dayMarks.length === 0 || dayMarks[0] / frames.length > 0.14) && <span className="absolute left-0">now</span>}
         {dayMarks.map((i) => (
           <span key={i} className="absolute -translate-x-1/2" style={{ left: `calc(${(i / frames.length) * 100}% + 8px)` }}>
             {relativeDay(frames[i].time, nowIso)}

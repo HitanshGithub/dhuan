@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import type { ImageSource, Map as MLMap, MapMouseEvent } from 'maplibre-gl'
 import { dataUrl, frameImage, type Place, type RunMeta } from '../api'
+import WindCanvas, { type WindData } from './WindCanvas'
 
 const STYLE = 'https://tiles.openfreemap.org/styles/dark'
 // MapLibre 6 looks for its worker next to its own module URL, which Vite rewrites; serve it from /public instead
@@ -21,6 +22,21 @@ export default function SmokeMap({ meta, frame, place, onPick }: Props) {
   const ready = useRef(false)
   const pick = useRef(onPick)
   pick.current = onPick
+  const [mapObj, setMapObj] = useState<MLMap | null>(null)
+  const [wind, setWind] = useState<WindData | null>(null)
+
+  // the wind field that carried the smoke, for the animated streaks (older runs may not have it)
+  useEffect(() => {
+    if (!meta) return
+    let cancelled = false
+    fetch(dataUrl(meta, 'winds.json'))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((w) => !cancelled && setWind(w))
+      .catch(() => !cancelled && setWind(null))
+    return () => {
+      cancelled = true
+    }
+  }, [meta])
 
   // the map itself, once
   useEffect(() => {
@@ -40,12 +56,14 @@ export default function SmokeMap({ meta, frame, place, onPick }: Props) {
     m.on('load', () => {
       ready.current = true
       m.getCanvas().style.cursor = 'crosshair'
+      setMapObj(m)
     })
     map.current = m
     return () => {
       m.remove()
       map.current = null
       ready.current = false
+      setMapObj(null)
     }
   }, [])
 
@@ -146,6 +164,7 @@ export default function SmokeMap({ meta, frame, place, onPick }: Props) {
   return (
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" aria-label="Map of North India with smoke forecast" />
+      <WindCanvas map={mapObj} wind={wind} frame={frame} />
     </div>
   )
 }

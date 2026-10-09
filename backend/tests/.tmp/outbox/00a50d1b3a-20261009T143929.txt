@@ -1,0 +1,13 @@
+To: someone@example.com
+Subject: Dhuan: moderate smoke at Delhi around Sunday 11 Oct, 2 AM
+
+Farm-fire smoke at Delhi: starts arriving around Friday 9 Oct, 8 PM and peaks around Sunday 11 Oct, 2 AM (about 33.2 µg/m³ of PM2.5, estimated: moderate). It should thin out by Sunday 11 Oct, 8 AM.
+Most of it comes from fires in Sangrur, Punjab, Barnala, Punjab, Patiala, Punjab.
+
+What to do:
+- Shorten outdoor exercise and school sports during the peak hours.
+- Keep windows closed and run an air purifier if you have one.
+- Wear an N95 mask on long commutes.
+
+Right now: Clear (0.8 µg/m³ estimated). Forecast made 2026-10-09 14:39 UTC from 120 satellite fire detections and the wind forecast.
+Dhuan is an indicative estimate, not an official air-quality forecast. https://github.com/HitanshGithub/dhuan

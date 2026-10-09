@@ -14,9 +14,9 @@ async function shoot(name, { width, height, mobile = false, steps = async () => 
   const page = await context.newPage()
   page.on('pageerror', (e) => console.error(`[${name}] page error:`, e.message))
   page.on('console', (m) => m.type() === 'error' && console.error(`[${name}] console:`, m.text()))
-  await page.goto(base, { waitUntil: 'networkidle' })
+  await page.goto(base, { waitUntil: 'load' })
   await page.waitForSelector('text=Live', { timeout: 30000 })
-  await page.waitForTimeout(2500) // tiles + first frame
+  await page.waitForTimeout(6000) // tiles, fonts and the first frame in a cold context
   await steps(page)
   await page.screenshot({ path: `${out}${name}.png` })
   console.log('saved', `${name}.png`)

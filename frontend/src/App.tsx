@@ -34,6 +34,7 @@ export default function App() {
         const next = () => {
           if (i >= order.length) return
           const img = new Image()
+          img.crossOrigin = 'anonymous' // same request mode as MapLibre's fetch, so the cached copy carries CORS headers
           img.onload = img.onerror = () => {
             i += 1
             next()
