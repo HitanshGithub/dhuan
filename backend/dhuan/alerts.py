@@ -47,6 +47,9 @@ class LocalSubscribers:
         self.store.put(key, f"To: {sub['email']}\nSubject: {message['subject']}\n\n{message['body']}".encode("utf-8"))
         return key
 
+    def confirmed(self, sub: dict) -> bool:
+        return True
+
 
 class AwsSubscribers:
     def __init__(self):
@@ -80,6 +83,11 @@ class AwsSubscribers:
         subject = re.sub(r"[^\x20-\x7E]", "", message["subject"])[:99] or "Dhuan smoke alert"  # SNS subjects must be ASCII
         return self.sns.publish(TopicArn=sub["topic_arn"], Subject=subject, Message=message["body"])["MessageId"]
 
+    def confirmed(self, sub: dict) -> bool:
+        """SNS drops messages published before the email subscription is confirmed, silently; so check first."""
+        subs = self.sns.list_subscriptions_by_topic(TopicArn=sub["topic_arn"])["Subscriptions"]
+        return any(s["SubscriptionArn"] != "PendingConfirmation" for s in subs)
+
 
 def _plain(item: dict) -> dict:
     out = dict(item)
@@ -101,7 +109,8 @@ def subscribe(email: str, lat: float, lon: float, label: str, language: str) -> 
            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "last_alert_at": None, "last_alert_band": None}
     if isinstance(r, AwsSubscribers):
         sub["topic_arn"] = r.create_topic(sub)
-        status, note = "pending_confirmation", "Check your inbox for a confirmation email from Amazon SNS and click the link."
+        status, note = "pending_confirmation", ("Open the email from AWS Notifications (check spam too) and click \"Confirm subscription\". "
+                                                "Until then nothing can be delivered to you.")
     else:
         status, note = "subscribed", "Local build: alerts are written to backend/out/outbox instead of being emailed."
     r.put(sub)
@@ -152,9 +161,12 @@ def send_now(sub_id: str) -> dict | None:
     sub = r.get(sub_id)
     if not sub:
         return None
+    if not r.confirmed(sub):
+        return {"id": sub_id, "sent": False, "status": "pending_confirmation",
+                "reason": "Not confirmed yet. Open the email from AWS Notifications, click \"Confirm subscription\", then press this again."}
     fc = forecast.point_forecast(sub["lat"], sub["lon"])
     if not fc:
-        return {"id": sub_id, "sent": False, "reason": "No forecast for this place yet"}
+        return {"id": sub_id, "sent": False, "status": "no_forecast", "reason": "No forecast for this place yet"}
     message = advisory.compose(fc, sub.get("label", ""), sub.get("language", "en"))
     ref = r.deliver(sub, message)
-    return {"id": sub_id, "sent": True, "ref": ref, **message}
+    return {"id": sub_id, "sent": True, "status": "sent", "ref": ref, **message}

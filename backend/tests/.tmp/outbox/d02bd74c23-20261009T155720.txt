@@ -9,5 +9,5 @@ What to do:
 - Keep windows closed and run an air purifier if you have one.
 - Wear an N95 mask on long commutes.
 
-Right now: Clear (0.8 µg/m³ estimated). Forecast made 2026-10-09 14:39 UTC from 120 satellite fire detections and the wind forecast.
+Right now: Clear (0.8 µg/m³ estimated). Forecast made 2026-10-09 15:57 UTC from 120 satellite fire detections and the wind forecast.
 Dhuan is an indicative estimate, not an official air-quality forecast. https://github.com/HitanshGithub/dhuan

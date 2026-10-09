@@ -99,7 +99,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
   preview: (id: string) =>
-    json<{ sent: boolean; subject?: string; body?: string; reason?: string }>(`${API_BASE}/api/subscribe/${id}/preview`, { method: 'POST' }),
+    json<{ sent: boolean; status?: string; subject?: string; body?: string; reason?: string }>(`${API_BASE}/api/subscribe/${id}/preview`, { method: 'POST' }),
 }
 
 export function dataUrl(meta: RunMeta, path: string): string {

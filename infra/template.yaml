@@ -205,7 +205,7 @@ Resources:
             TableName: !Ref SubscribersTable
         - Statement:
             - Effect: Allow
-              Action: [sns:CreateTopic, sns:Subscribe, sns:Publish, sns:TagResource]
+              Action: [sns:CreateTopic, sns:Subscribe, sns:Publish, sns:TagResource, sns:ListSubscriptionsByTopic]
               Resource: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:dhuan-sub-*
             - Effect: Allow
               Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
