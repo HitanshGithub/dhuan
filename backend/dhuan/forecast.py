@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
@@ -13,6 +14,8 @@ from .calibrate import band_for
 from .storage import get_json, storage
 
 IST = timezone(timedelta(hours=5, minutes=30))
+RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{2,40}$")
+NEAREST_STATION_KM = 30.0
 _cache: dict[str, "Run"] = {}
 
 
@@ -23,24 +26,34 @@ class Run:
     attr_ids: np.ndarray
     attr_pct: np.ndarray
     times: list[datetime]
+    stations: list[dict] = field(default_factory=list)  # observed readings, if the run has them
+
+
+def load_run(run_id: str, store=None) -> Run | None:
+    if not RUN_ID.match(run_id):
+        return None
+    if run_id in _cache:
+        return _cache[run_id]
+    store = store or storage()
+    meta = get_json(store, f"runs/{run_id}/meta.json")
+    if not meta:
+        return None
+    ug = np.load(io.BytesIO(store.get(f"runs/{run_id}/ug.npy"))).astype(np.float32)
+    attr = np.load(io.BytesIO(store.get(f"runs/{run_id}/attr.npz")))
+    times = [datetime.fromisoformat(t.replace("Z", "+00:00")) for t in meta["times"]]
+    observed = get_json(store, f"runs/{run_id}/stations.geojson") or {}
+    stations = [{"lat": f["geometry"]["coordinates"][1], "lon": f["geometry"]["coordinates"][0], **f["properties"]} for f in observed.get("features", [])]
+    run = Run(meta=meta, ug=ug, attr_ids=attr["ids"], attr_pct=attr["pct"], times=times, stations=stations)
+    if len(_cache) >= 3:  # a Lambda holds the live run and a replay or two; keep memory bounded
+        _cache.pop(next(iter(_cache)))
+    _cache[run_id] = run
+    return run
 
 
 def latest_run(store=None) -> Run | None:
     store = store or storage()
     latest = get_json(store, "latest.json")
-    if not latest:
-        return None
-    run_id = latest["run_id"]
-    if run_id in _cache:
-        return _cache[run_id]
-    meta = get_json(store, f"runs/{run_id}/meta.json")
-    ug = np.load(io.BytesIO(store.get(f"runs/{run_id}/ug.npy"))).astype(np.float32)
-    attr = np.load(io.BytesIO(store.get(f"runs/{run_id}/attr.npz")))
-    times = [datetime.fromisoformat(t.replace("Z", "+00:00")) for t in meta["times"]]
-    run = Run(meta=meta, ug=ug, attr_ids=attr["ids"], attr_pct=attr["pct"], times=times)
-    _cache.clear()
-    _cache[run_id] = run
-    return run
+    return load_run(latest["run_id"], store) if latest else None
 
 
 def _ist(t: datetime) -> str:
@@ -48,8 +61,22 @@ def _ist(t: datetime) -> str:
     return t.astimezone(IST).strftime("%A %d %b, %I %p").replace(" 0", " ").lstrip("0")
 
 
-def point_forecast(lat: float, lon: float, run: Run | None = None) -> dict | None:
-    run = run or latest_run()
+def nearest_station(run: Run, lat: float, lon: float) -> dict | None:
+    if not run.stations:
+        return None
+    best, best_km = None, NEAREST_STATION_KM
+    for s in run.stations:
+        km = float(np.hypot((s["lat"] - lat) * 110.54, (s["lon"] - lon) * 111.32 * np.cos(np.radians(lat))))
+        if km < best_km:
+            best, best_km = s, km
+    if best is None:
+        return None
+    return {"name": best["name"], "aqi": best["aqi"], "pm25": best.get("pm25"), "time": best.get("time"), "distance_km": round(best_km, 1),
+            "category": best.get("label"), "color": best.get("color")}
+
+
+def point_forecast(lat: float, lon: float, run: Run | None = None, run_id: str | None = None) -> dict | None:
+    run = run or (load_run(run_id) if run_id else latest_run())
     if run is None or not geo.in_domain(lon, lat):
         return None
     ix, iy = geo.to_cell(lon, lat)
@@ -85,11 +112,13 @@ def point_forecast(lat: float, lon: float, run: Run | None = None) -> dict | Non
 
     return {
         "lat": round(lat, 4), "lon": round(lon, 4), "run_id": run.meta["run_id"], "generated_at": run.meta["generated_at"],
+        "replay": run.meta.get("replay"),
         "now": {"time": frames[now_i]["time"], "ist": frames[now_i]["ist"], "ug": frames[now_i]["ug"], **now_band},
         "arrival": None if arrival_i is None or arrival_i == now_i else {"frame": arrival_i, "time": frames[arrival_i]["time"], "ist": frames[arrival_i]["ist"]},
         "peak": {"frame": peak_i, "time": frames[peak_i]["time"], "ist": frames[peak_i]["ist"], "ug": frames[peak_i]["ug"], **band_for(float(series[peak_i]))},
         "clears": None if clear_i is None or clear_i == peak_i else {"frame": clear_i, "time": frames[clear_i]["time"], "ist": frames[clear_i]["ist"]},
         "sources": sources,
+        "observed": nearest_station(run, lat, lon),
         "frames": frames,
         "fires": run.meta["fires"],
         "disclaimer": "Indicative estimate from a smoke-transport model driven by satellite fire detections and forecast winds. Not an official air-quality forecast.",

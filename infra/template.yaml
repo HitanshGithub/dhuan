@@ -19,6 +19,11 @@ Parameters:
     Default: 48h
     AllowedValues: [24h, 48h, 7d]
     Description: How far back to read fire detections
+  WaqiToken:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: World Air Quality Index token (aqicn.org/data-platform/token) for observed station readings; empty disables them
   GitHubRepo:
     Type: String
     Default: ""
@@ -52,6 +57,7 @@ Globals:
         DHUAN_DATA_URL: !Sub https://${DataDistribution.DomainName}
         DHUAN_FRONTEND_ORIGIN: !Ref FrontendOrigin
         DHUAN_FIRMS_WINDOW: !Ref FirmsWindow
+        DHUAN_WAQI_TOKEN: !Ref WaqiToken
 
 Resources:
   # ---------------------------------------------------------------- run outputs: S3 behind CloudFront

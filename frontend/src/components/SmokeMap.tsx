@@ -13,9 +13,10 @@ interface Props {
   frame: number
   place: Place | null
   onPick: (lat: number, lon: number) => void
+  showStations: boolean
 }
 
-export default function SmokeMap({ meta, frame, place, onPick }: Props) {
+export default function SmokeMap({ meta, frame, place, onPick, showStations }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<MLMap | null>(null)
   const marker = useRef<maplibregl.Marker | null>(null)
@@ -131,12 +132,57 @@ export default function SmokeMap({ meta, frame, place, onPick }: Props) {
         })
         m.on('mouseleave', 'fires', () => popup.remove())
       }
+      // measured AQI at monitoring stations, when the run has them
+      const empty = { type: 'FeatureCollection' as const, features: [] as never[] }
+      const stationsData = meta.has_stations ? dataUrl(meta, 'stations.geojson') : empty
+      if (m.getSource('stations')) {
+        ;(m.getSource('stations') as maplibregl.GeoJSONSource).setData(stationsData)
+      } else {
+        m.addSource('stations', { type: 'geojson', data: stationsData })
+        m.addLayer(
+          {
+            id: 'stations',
+            type: 'circle',
+            source: 'stations',
+            paint: {
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3.5, 8, 7],
+              'circle-color': ['get', 'color'],
+              'circle-stroke-color': 'rgba(255,255,255,0.85)',
+              'circle-stroke-width': 1.2,
+              'circle-opacity': 0.95,
+            },
+          },
+          firstSymbol,
+        )
+        const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 })
+        m.on('mouseenter', 'stations', (e) => {
+          const f = e.features?.[0]
+          if (!f) return
+          const p = f.properties as { name: string; aqi: number; pm25: number | null; time: string; label: string }
+          const when = p.time ? new Date(p.time).toLocaleTimeString('en-IN', { hour: 'numeric', hour12: true, timeZone: 'Asia/Kolkata' }) : ''
+          popup
+            .setLngLat((f.geometry as { coordinates: [number, number] }).coordinates)
+            .setHTML(
+              `<div style="font-weight:600">${p.name}</div><div style="color:#aab6c5">Measured AQI ${p.aqi} · ${p.label}${p.pm25 != null ? ` · ≈${p.pm25} µg/m³ PM2.5` : ''}${when ? ` · ${when} IST` : ''}</div>`,
+            )
+            .addTo(m)
+        })
+        m.on('mouseleave', 'stations', () => popup.remove())
+      }
+      m.setLayoutProperty('stations', 'visibility', showStations ? 'visible' : 'none')
     }
     if (ready.current) install()
     else m.once('load', install)
-    // frame is handled by the next effect; this one only runs when the run changes
+    // frame and the stations toggle are handled by the next effects; this one only runs when the run changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meta])
+
+  // stations on/off
+  useEffect(() => {
+    const m = map.current
+    if (!m || !ready.current || !m.getLayer('stations')) return
+    m.setLayoutProperty('stations', 'visibility', showStations ? 'visible' : 'none')
+  }, [showStations])
 
   // swap the frame image
   useEffect(() => {

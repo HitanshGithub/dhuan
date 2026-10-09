@@ -37,23 +37,32 @@ def latest():
     return meta
 
 
+RUN_PATTERN = "^[A-Za-z0-9][A-Za-z0-9-]{2,40}$"
+
+
+@app.get("/api/replays")
+def replays():
+    """Past days rebuilt from archived fires and winds, e.g. a peak day of the season (see dhuan.replay)."""
+    return get_json(storage(), "replays.json") or []
+
+
 @app.get("/api/forecast")
-def point(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180)):
-    result = forecast.point_forecast(lat, lon)
+def point(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180), run: str | None = Query(None, pattern=RUN_PATTERN)):
+    result = forecast.point_forecast(lat, lon, run_id=run)
     if result is None:
-        raise HTTPException(404, "Outside the forecast area (North India, 70-88E 22-34N) or no run yet")
+        raise HTTPException(404, "Outside the forecast area (North India, 70-88E 22-34N), unknown run, or no run yet")
     return result
 
 
 @app.get("/api/advisory")
 def advisory_text(lat: float = Query(..., ge=-90, le=90), lon: float = Query(..., ge=-180, le=180), lang: str = Query("en", pattern="^(en|hi|pa)$"),
-                  label: str = Query("", max_length=80)):
+                  label: str = Query("", max_length=80), run: str | None = Query(None, pattern=RUN_PATTERN)):
     """The plain-language advisory for a place, in English, Hindi or Punjabi."""
     from . import advisory
 
-    fc = forecast.point_forecast(lat, lon)
+    fc = forecast.point_forecast(lat, lon, run_id=run)
     if fc is None:
-        raise HTTPException(404, "Outside the forecast area or no run yet")
+        raise HTTPException(404, "Outside the forecast area, unknown run, or no run yet")
     return advisory.compose(fc, label, lang)
 
 

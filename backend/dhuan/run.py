@@ -49,7 +49,17 @@ def step_fetch(run_id: str, store=None) -> dict:
     req = Request(wind_src.request_url(), headers={"User-Agent": wind_src.USER_AGENT})
     with urlopen(req, timeout=60) as resp:
         store.put(f"runs/{run_id}/inputs/winds.json", resp.read())
-    return {"run_id": run_id, "fires": len(fires), "seconds": round(time.time() - t0, 1)}
+    n_stations = 0
+    if settings.waqi_token:
+        try:  # observations are a bonus for the map; never let them stop the forecast
+            from .sources import stations as station_src
+
+            observed = station_src.fetch(settings.waqi_token)
+            put_json(store, f"runs/{run_id}/stations.geojson", station_src.to_geojson(observed))
+            n_stations = len(observed)
+        except Exception:
+            log.exception("station readings unavailable for run %s", run_id)
+    return {"run_id": run_id, "fires": len(fires), "stations": n_stations, "seconds": round(time.time() - t0, 1)}
 
 
 def load_inputs(run_id: str, store=None):
@@ -61,7 +71,8 @@ def load_inputs(run_id: str, store=None):
     return fires, wind
 
 
-def step_simulate(run_id: str, store=None, now: datetime | None = None) -> dict:
+def step_simulate(run_id: str, store=None, now: datetime | None = None, set_latest: bool = True, extra_meta: dict | None = None) -> dict:
+    """Simulate a run whose inputs are saved. Replays (dhuan.replay) pass their own `now` and do not become `latest`."""
     store = store or storage()
     t0 = time.time()
     fires, wind = load_inputs(run_id, store)
@@ -113,11 +124,15 @@ def step_simulate(run_id: str, store=None, now: datetime | None = None) -> dict:
             "fires": "NASA FIRMS, VIIRS 375 m (Suomi NPP, NOAA-20, NOAA-21)",
             "winds": "Open-Meteo (CC BY 4.0)",
             "districts": "Census 2011 boundaries via udit-001/india-maps-data",
+            "stations": "World Air Quality Index project (CPCB and state boards)" if store.get(f"runs/{run_id}/stations.geojson") else None,
         },
+        "has_stations": store.get(f"runs/{run_id}/stations.geojson") is not None,
+        **(extra_meta or {}),
     }
     put_json(store, f"runs/{run_id}/meta.json", meta)
-    put_json(store, "latest.json", {"run_id": run_id, "generated_at": meta["generated_at"], "fires": len(fires), "times": meta["times"],
-                                    "now_frame": sim.now_frame, "frame_max_ug": meta["frame_max_ug"]})
+    if set_latest:
+        put_json(store, "latest.json", {"run_id": run_id, "generated_at": meta["generated_at"], "fires": len(fires), "times": meta["times"],
+                                        "now_frame": sim.now_frame, "frame_max_ug": meta["frame_max_ug"]})
     return {"run_id": run_id, "fires": len(fires), "parcels": sim.n_parcels, "frames": len(sim.times), "seconds": meta["seconds"]}
 
 

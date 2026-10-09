@@ -23,7 +23,26 @@ export interface RunMeta {
   frame_max_ug: number[]
   bands: BandInfo[]
   data_url: string
-  sources: Record<string, string>
+  sources: Record<string, string | null>
+  has_stations?: boolean
+  replay?: { date: string; title: string } | null
+}
+
+export interface Replay {
+  run_id: string
+  date: string
+  title: string
+  fires: number
+}
+
+export interface Observed {
+  name: string
+  aqi: number
+  pm25: number | null
+  time: string | null
+  distance_km: number
+  category: string
+  color: string
 }
 
 export interface Frame {
@@ -55,6 +74,8 @@ export interface PointForecast {
   peak: Required<Moment>
   clears: Moment | null
   sources: { district: string; share: number }[]
+  observed: Observed | null
+  replay?: { date: string; title: string } | null
   frames: Frame[]
   fires: RunMeta['fires']
   disclaimer: string
@@ -87,11 +108,19 @@ async function json<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+const runParam = (run?: string) => (run ? `&run=${encodeURIComponent(run)}` : '')
+
 export const api = {
   latest: () => json<RunMeta>(`${API_BASE}/api/latest`),
-  forecast: (lat: number, lon: number) => json<PointForecast>(`${API_BASE}/api/forecast?lat=${lat}&lon=${lon}`),
-  advisory: (lat: number, lon: number, lang: string, label: string) =>
-    json<Advisory>(`${API_BASE}/api/advisory?lat=${lat}&lon=${lon}&lang=${lang}&label=${encodeURIComponent(label)}`),
+  replays: () => json<Replay[]>(`${API_BASE}/api/replays`).catch(() => [] as Replay[]),
+  // a replay's metadata comes straight from the data store; `base` is the live run's data_url minus its /runs/<id>
+  runMeta: async (base: string, runId: string): Promise<RunMeta> => {
+    const meta = await json<RunMeta>(`${base}/runs/${runId}/meta.json`)
+    return { ...meta, data_url: `${base}/runs/${runId}` }
+  },
+  forecast: (lat: number, lon: number, run?: string) => json<PointForecast>(`${API_BASE}/api/forecast?lat=${lat}&lon=${lon}${runParam(run)}`),
+  advisory: (lat: number, lon: number, lang: string, label: string, run?: string) =>
+    json<Advisory>(`${API_BASE}/api/advisory?lat=${lat}&lon=${lon}&lang=${lang}&label=${encodeURIComponent(label)}${runParam(run)}`),
   subscribe: (body: { email: string; lat: number; lon: number; label: string; language: string }) =>
     json<{ id: string; status: string; note: string }>(`${API_BASE}/api/subscribe`, {
       method: 'POST',
@@ -105,6 +134,12 @@ export const api = {
 export function dataUrl(meta: RunMeta, path: string): string {
   const base = meta.data_url.startsWith('http') ? meta.data_url : `${API_BASE}${meta.data_url}`
   return `${base}/${path}`
+}
+
+/** The root of the data store (CloudFront when deployed, the local /data mount in development). */
+export function dataRoot(meta: RunMeta): string {
+  const full = meta.data_url.startsWith('http') ? meta.data_url : `${API_BASE}${meta.data_url}`
+  return full.replace(/\/runs\/[^/]+$/, '')
 }
 
 export function frameImage(meta: RunMeta, frame: number): string {

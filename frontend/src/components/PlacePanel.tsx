@@ -9,6 +9,7 @@ interface Props {
   loading: boolean
   error: string | null
   frame: number
+  run?: string
   onFrame: (f: number) => void
   onClose: () => void
 }
@@ -19,7 +20,7 @@ const LANGS: { key: 'en' | 'hi' | 'pa'; label: string }[] = [
   { key: 'pa', label: 'ਪੰਜਾਬੀ' },
 ]
 
-export default function PlacePanel({ place, forecast, loading, error, frame, onFrame, onClose }: Props) {
+export default function PlacePanel({ place, forecast, loading, error, frame, run, onFrame, onClose }: Props) {
   const [lang, setLang] = useState<'en' | 'hi' | 'pa'>('en')
   const [advisory, setAdvisory] = useState<Advisory | null>(null)
   const [advLoading, setAdvLoading] = useState(false)
@@ -40,14 +41,14 @@ export default function PlacePanel({ place, forecast, loading, error, frame, onF
     let cancelled = false
     setAdvLoading(true)
     api
-      .advisory(place.lat, place.lon, lang, place.name)
+      .advisory(place.lat, place.lon, lang, place.name, run)
       .then((a) => !cancelled && setAdvisory(a))
       .catch(() => !cancelled && setAdvisory(null))
       .finally(() => !cancelled && setAdvLoading(false))
     return () => {
       cancelled = true
     }
-  }, [forecast, lang, place])
+  }, [forecast, lang, place, run])
 
   return (
     <div className="glass flex h-full flex-col rounded-2xl shadow-2xl">
@@ -126,16 +127,30 @@ function Headline({ fc }: { fc: PointForecast }) {
   const peakAhead = fc.peak.frame > fc.frames.findIndex((f) => f.is_now)
   return (
     <div className="mt-3">
+      {fc.replay && (
+        <div className="mb-2 rounded-lg bg-amber-300/10 px-3 py-1.5 text-xs text-amber-100 ring-1 ring-amber-300/30">
+          Replay of {fc.replay.date}: the forecast as it would have looked at 5:30 PM that day, from archived fires and winds.
+        </div>
+      )}
       <div className="flex items-center gap-3 rounded-xl p-3 ring-1 ring-line" style={{ background: `${fc.now.color}1f` }}>
         <span className="h-10 w-2 rounded-full" style={{ background: fc.now.color }} />
         <div>
-          <div className="text-xs text-mist/70">Right now</div>
+          <div className="text-xs text-mist/70">Farm-fire smoke right now</div>
           <div className="font-display text-xl font-semibold leading-tight">
             {fc.now.label}
             <span className="ml-2 text-sm font-medium text-mist/80">~{fc.now.ug} µg/m³</span>
           </div>
         </div>
       </div>
+      {fc.observed && (
+        <div className="mt-2 flex items-start gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs text-mist ring-1 ring-line">
+          <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full border border-white/70" style={{ background: fc.observed.color }} />
+          <span>
+            Measured now at {fc.observed.name} ({fc.observed.distance_km} km away): <span className="font-semibold text-white">AQI {fc.observed.aqi}</span>, {fc.observed.category}
+            {fc.observed.pm25 != null && <> · ≈{fc.observed.pm25} µg/m³ PM2.5 from all sources</>}. The figure above is only the farm-fire share.
+          </span>
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap gap-2 text-sm [&>*]:min-w-[45%] [&>*]:flex-1">
         {fc.arrival && (
           <Moment label="Arrives" iso={fc.arrival.time} nowIso={nowIso} />

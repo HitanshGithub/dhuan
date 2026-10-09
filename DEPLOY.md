@@ -24,7 +24,12 @@ aws cloudformation package --template-file infra/template.yaml --s3-bucket dhuan
 aws cloudformation deploy --template-file infra/.packaged.yaml --stack-name dhuan --region ap-south-1 \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --no-fail-on-empty-changeset \
   --parameter-overrides FrontendOrigin=https://main.<app-id>.amplifyapp.com GitHubRepo=HitanshGithub/dhuan \
-    ExistingOidcProviderArn=arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com
+    ExistingOidcProviderArn=arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com \
+    "WaqiToken=$WAQI_TOKEN"                                             # optional: measured station readings
+
+# a replay of a past day, built locally from archived fires and winds and published to the data bucket
+DHUAN_STORAGE=s3 DHUAN_BUCKET=<DataBucketName> uv run --project backend python -m dhuan.replay --date 2025-11-09 \
+  --title "Peak season, 9 November 2025"
 
 # the site
 uv run --project backend python infra/deploy_frontend.py --region ap-south-1 --ensure-only   # prints the Amplify URL

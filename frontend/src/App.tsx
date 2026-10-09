@@ -1,18 +1,20 @@
-import { Code2, Flame, Info } from 'lucide-react'
+import { Code2, Flame, History, Info, Radio } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { api, frameImage, reverseName, type Place, type PointForecast, type RunMeta } from './api'
+import { api, dataRoot, frameImage, reverseName, type Place, type PointForecast, type Replay, type RunMeta } from './api'
 import About from './components/About'
 import Legend from './components/Legend'
 import PlacePanel from './components/PlacePanel'
 import Search from './components/Search'
 import SmokeMap from './components/SmokeMap'
 import Timeline from './components/Timeline'
-import { formatCount, istTime } from './format'
+import { formatCount, istDay, istTime } from './format'
 
 const REPO = 'https://github.com/HitanshGithub/dhuan'
 
 export default function App() {
+  const [liveMeta, setLiveMeta] = useState<RunMeta | null>(null)
   const [meta, setMeta] = useState<RunMeta | null>(null)
+  const [replays, setReplays] = useState<Replay[]>([])
   const [metaError, setMetaError] = useState<string | null>(null)
   const [frame, setFrame] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -21,6 +23,10 @@ export default function App() {
   const [fcLoading, setFcLoading] = useState(false)
   const [fcError, setFcError] = useState<string | null>(null)
   const [about, setAbout] = useState(false)
+  const [showStations, setShowStations] = useState(true)
+
+  const isReplay = !!meta?.replay
+  const runParam = isReplay ? meta?.run_id : undefined
 
   // a shared link opens straight on its place: ?lat=..&lon=..&name=..
   useEffect(() => {
@@ -36,30 +42,55 @@ export default function App() {
     window.history.replaceState(null, '', url)
   }, [place])
 
-  // the latest run, then warm the browser cache with its frames (nearest hours first)
+  // warm the browser cache with a run's frames, nearest hours first
+  const preload = useCallback((m: RunMeta) => {
+    const order = [...m.times.keys()].sort((a, b) => Math.abs(a - m.now_frame) - Math.abs(b - m.now_frame))
+    let i = 0
+    const next = () => {
+      if (i >= order.length) return
+      const img = new Image()
+      img.crossOrigin = 'anonymous' // same request mode as MapLibre's fetch, so the cached copy carries CORS headers
+      img.onload = img.onerror = () => {
+        i += 1
+        next()
+      }
+      img.src = frameImage(m, order[i])
+    }
+    next()
+    next()
+  }, [])
+
+  // the latest run, and the list of replays
   useEffect(() => {
     api
       .latest()
       .then((m) => {
+        setLiveMeta(m)
         setMeta(m)
         setFrame(m.now_frame)
-        const order = [...m.times.keys()].sort((a, b) => Math.abs(a - m.now_frame) - Math.abs(b - m.now_frame))
-        let i = 0
-        const next = () => {
-          if (i >= order.length) return
-          const img = new Image()
-          img.crossOrigin = 'anonymous' // same request mode as MapLibre's fetch, so the cached copy carries CORS headers
-          img.onload = img.onerror = () => {
-            i += 1
-            next()
-          }
-          img.src = frameImage(m, order[i])
-        }
-        next()
-        next()
+        preload(m)
       })
       .catch((e: Error) => setMetaError(e.message))
-  }, [])
+    api.replays().then(setReplays)
+  }, [preload])
+
+  const selectRun = async (runId: 'live' | string) => {
+    if (!liveMeta) return
+    setPlaying(false)
+    if (runId === 'live') {
+      setMeta(liveMeta)
+      setFrame(liveMeta.now_frame)
+      return
+    }
+    try {
+      const m = await api.runMeta(dataRoot(liveMeta), runId)
+      setMeta(m)
+      setFrame(m.now_frame)
+      preload(m)
+    } catch (e) {
+      setMetaError((e as Error).message)
+    }
+  }
 
   // playback
   useEffect(() => {
@@ -75,7 +106,7 @@ export default function App() {
     reverseName(lat, lon).then((name) => name && setPlace((p) => (p && p.lat === lat && p.lon === lon ? { ...p, name } : p)))
   }, [])
 
-  // the forecast for the chosen place
+  // the forecast for the chosen place, from the run being shown
   useEffect(() => {
     if (!place) {
       setForecast(null)
@@ -86,18 +117,18 @@ export default function App() {
     setFcLoading(true)
     setFcError(null)
     api
-      .forecast(place.lat, place.lon)
+      .forecast(place.lat, place.lon, runParam)
       .then((fc) => !cancelled && setForecast(fc))
       .catch((e: Error) => !cancelled && setFcError(e.message))
       .finally(() => !cancelled && setFcLoading(false))
     return () => {
       cancelled = true
     }
-  }, [place?.lat, place?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [place?.lat, place?.lon, runParam]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-ink">
-      <SmokeMap meta={meta} frame={frame} place={place} onPick={pick} />
+      <SmokeMap meta={meta} frame={frame} place={place} onPick={pick} showStations={showStations} />
 
       {/* header */}
       <div className="absolute left-3 top-3 z-10 w-[min(400px,calc(100%-24px))] md:left-4 md:top-4">
@@ -120,13 +151,39 @@ export default function App() {
           {/* on a phone with a place open, keep only the brand row so the map stays visible */}
           <div className={place ? 'hidden md:block' : ''}>
             <p className="mt-1 text-sm leading-snug text-mist">Where North India's farm-fire smoke is going, when it reaches you, and from where.</p>
-            {meta && (
+            {meta && !isReplay && (
               <div className="mt-2 flex items-center gap-2 text-xs text-mist/80">
                 <span className="pulse relative inline-block h-2 w-2 rounded-full bg-emerald-400" />
                 Live · {formatCount(meta.fires.count)} fires seen in the last 48 h · updated {istTime(meta.generated_at)} IST
               </div>
             )}
+            {meta && isReplay && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-amber-200">
+                <History size={13} />
+                Replay · {istDay(meta.times[meta.now_frame])} · {formatCount(meta.fires.count)} fires in 48 h · archived fires and winds, same model
+              </div>
+            )}
             {metaError && <div className="mt-2 rounded-lg bg-red-500/10 px-2 py-1 text-xs text-red-200">No forecast yet: {metaError}</div>}
+            {replays.length > 0 && liveMeta && (
+              <div className="mt-2 flex rounded-full bg-white/5 p-0.5 text-xs ring-1 ring-line">
+                <button
+                  onClick={() => selectRun('live')}
+                  className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 transition ${!isReplay ? 'bg-ember font-semibold text-ink' : 'text-mist hover:text-white'}`}
+                >
+                  <Radio size={12} /> Live
+                </button>
+                {replays.slice(0, 2).map((r) => (
+                  <button
+                    key={r.run_id}
+                    onClick={() => selectRun(r.run_id)}
+                    className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1 transition ${meta?.run_id === r.run_id ? 'bg-amber-300 font-semibold text-ink' : 'text-mist hover:text-white'}`}
+                    title={r.title}
+                  >
+                    <History size={12} /> {istDay(`${r.date}T12:00:00Z`)}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="mt-3">
               <Search onPlace={setPlace} />
             </div>
@@ -138,14 +195,14 @@ export default function App() {
       {/* legend (desktop, when the panel is closed) */}
       {meta && !place && (
         <div className="absolute right-4 top-4 z-10 hidden md:block">
-          <Legend meta={meta} />
+          <Legend meta={meta} showStations={showStations} onToggleStations={() => setShowStations((s) => !s)} />
         </div>
       )}
 
       {/* place panel: right card on desktop, bottom sheet on phones */}
       {place && (
         <div className="absolute inset-x-0 bottom-0 z-20 h-[50vh] p-2 md:inset-x-auto md:bottom-36 md:right-4 md:top-4 md:h-auto md:w-[400px] md:p-0">
-          <PlacePanel place={place} forecast={forecast} loading={fcLoading} error={fcError} frame={frame} onFrame={setFrame} onClose={() => setPlace(null)} />
+          <PlacePanel place={place} forecast={forecast} loading={fcLoading} error={fcError} frame={frame} run={runParam} onFrame={setFrame} onClose={() => setPlace(null)} />
         </div>
       )}
 
@@ -159,7 +216,7 @@ export default function App() {
           <Timeline meta={meta} frame={frame} playing={playing} onFrame={setFrame} onPlay={setPlaying} />
           {!place && (
             <div className="mt-2 md:hidden">
-              <Legend meta={meta} />
+              <Legend meta={meta} showStations={showStations} onToggleStations={() => setShowStations((s) => !s)} />
             </div>
           )}
         </div>

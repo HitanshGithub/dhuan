@@ -7,6 +7,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def _load_dotenv(path: Path = ROOT / ".env") -> None:
+    """Local secrets (API keys) live in an untracked .env file; deployed, they come from the Lambda environment."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+
+
 def _env(name: str, default: str = "") -> str:
     return os.environ.get(name, default)
 
@@ -25,6 +39,8 @@ class Settings:
     state_machine_arn: str = _env("DHUAN_STATE_MACHINE_ARN")
     frontend_origin: str = _env("DHUAN_FRONTEND_ORIGIN", "http://localhost:5173")
     firms_window: str = _env("DHUAN_FIRMS_WINDOW", "48h")  # 24h | 48h | 7d
+    waqi_token: str = _env("DHUAN_WAQI_TOKEN") or _env("WAQI_TOKEN")  # observed station readings; empty disables them
+    firms_map_key: str = _env("FIRMS_MAP_KEY")  # only for building replays of past days (dhuan.replay)
 
 
 settings = Settings()

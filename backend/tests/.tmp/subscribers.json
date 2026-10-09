@@ -1,12 +1,12 @@
 [
  {
-  "id": "b06b9ec8a2",
+  "id": "b317bb8605",
   "email": "someone@example.com",
   "lat": 28.64,
   "lon": 77.22,
   "label": "Delhi",
   "language": "hi",
-  "created_at": "2026-10-09T16:18:55+00:00",
+  "created_at": "2026-10-09T16:58:04+00:00",
   "last_alert_at": null,
   "last_alert_band": null
  }

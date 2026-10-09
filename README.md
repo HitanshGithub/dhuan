@@ -4,7 +4,7 @@
 
 **Live: https://main.d9com2kyiohi6.amplifyapp.com** · tap any place in North India, no sign-up.
 
-![Dhuan: smoke forecast for Ludhiana](frontend/screenshots/03-forecast-desktop.png)
+![Dhuan: the 9 November 2025 replay, smoke reaching Delhi](frontend/screenshots/07-replay-desktop.png)
 
 Every October and November, rice stubble is burnt across Punjab, Haryana and western Uttar Pradesh, and the smoke
 drifts for hundreds of kilometres. Air-quality apps tell you how bad it is right now. Dhuan tells you what is coming.
@@ -42,6 +42,12 @@ flowchart LR
 4. **Tell people early.** The point forecast gives arrival, peak, how heavy, and the top source districts. Alerts go
    out when moderate or heavier smoke is expected within 36 hours; Ministral 3 on Amazon Bedrock rewrites the
    advisory in the subscriber's language from a template that is always right about the numbers.
+5. **Check it against the ground.** Every run also pulls the latest measured AQI from CPCB and state-board stations
+   (via the World Air Quality Index project) and shows it on the map and next to each place's forecast, so the
+   model's farm-fire share sits beside what the air actually measures.
+6. **Replay a peak day.** The season was only starting during the hackathon, so `dhuan.replay` rebuilds a past day
+   from archived fires and ERA5 winds with the same model. The site ships 9 November 2025: 4,828 fires in 48 hours,
+   smoke reaching Delhi that evening and peaking before dawn.
 
 The physics, the parameters, how the index becomes an estimated µg/m³, and what the model does not know are in
 [docs/model.md](docs/model.md). It is an indicative transport model, not an official forecast, and the app says
@@ -65,6 +71,14 @@ npm run dev                             # http://localhost:5173, proxies /api an
 Everything works offline except the Hindi/Punjabi rewrite of advisories, which needs Bedrock
 (`DHUAN_LLM=bedrock` and AWS credentials in ap-south-1); without it the Hindi template is used and Punjabi falls back
 to English. Locally, "emails" are written to `backend/out/outbox/`.
+
+Two optional free keys go in a `.env` file at the repository root (never committed): `WAQI_TOKEN` from
+aqicn.org/data-platform/token adds the measured station readings, and `FIRMS_MAP_KEY` from
+firms.modaps.eosdis.nasa.gov/api/map_key lets you build replays of past days:
+
+```bash
+uv run python -m dhuan.replay --date 2025-11-09 --title "Peak season, 9 November 2025"
+```
 
 ## Tests
 
@@ -102,7 +116,9 @@ Ministral 3 costs a fraction of a paisa per advisory.
 
 * **Fires:** NASA FIRMS (LANCE), VIIRS 375 m. *We acknowledge the use of data from NASA's Fire Information for Resource
   Management System (FIRMS), part of NASA's Earth Science Data and Information System (ESDIS).*
-* **Weather:** [Open-Meteo](https://open-meteo.com), CC BY 4.0.
+* **Weather:** [Open-Meteo](https://open-meteo.com) forecast and ERA5 archive, CC BY 4.0.
+* **Measured air quality:** [World Air Quality Index project](https://aqicn.org), republishing CPCB and state
+  pollution control board stations.
 * **District boundaries:** Census 2011, via [udit-001/india-maps-data](https://github.com/udit-001/india-maps-data) (MIT).
 * **Map tiles:** [OpenFreeMap](https://openfreemap.org), © OpenStreetMap contributors. **Place search:** Open-Meteo
   geocoding and Nominatim.

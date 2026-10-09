@@ -53,6 +53,22 @@ await shoot('04-about-desktop', {
     await page.waitForTimeout(500)
   },
 })
+await shoot('07-replay-desktop', {
+  width: 1440,
+  height: 900,
+  steps: async (page) => {
+    const replay = page.getByRole('button', { name: /Nov/ }).first()
+    if ((await replay.count()) === 0) return
+    await replay.click()
+    await page.waitForTimeout(2500)
+    await page.getByRole('button', { name: 'Delhi', exact: true }).click()
+    await page.waitForSelector('text=Replay of', { timeout: 20000 })
+    const slider = page.getByLabel('Forecast hour')
+    await slider.focus()
+    for (let i = 0; i < 14; i++) await page.keyboard.press('ArrowRight')
+    await page.waitForTimeout(2500)
+  },
+})
 await shoot('05-home-mobile', { width: 390, height: 844, mobile: true })
 await shoot('06-place-mobile', {
   width: 390,

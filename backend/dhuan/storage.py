@@ -38,7 +38,7 @@ class S3Storage:
         self.client = boto3.client("s3", region_name=region)
 
     def put(self, key: str, data: bytes) -> None:
-        cache = "no-cache" if key.endswith("latest.json") else "public, max-age=86400, immutable"
+        cache = "no-cache" if key.endswith(("latest.json", "replays.json")) else "public, max-age=86400, immutable"
         self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type(key), CacheControl=cache)
 
     def get(self, key: str) -> bytes | None:
