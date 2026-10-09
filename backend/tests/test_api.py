@@ -72,5 +72,7 @@ def test_api_advisory_and_local_subscription(forecast_run):
     assert sub.status_code == 201 and sub.json()["status"] == "subscribed"
     sent = client.post(f"/api/subscribe/{sub.json()['id']}/preview").json()
     assert sent["sent"] is True and sent["subject"].startswith("Dhuan:") and storage().get(sent["ref"]) is not None
+    again = client.post("/api/subscribe", json={"email": "Someone@example.com", "lat": 28.645, "lon": 77.215, "label": "Delhi", "language": "hi"})
+    assert again.status_code == 201 and again.json()["id"] == sub.json()["id"]  # same person, same place: reused, not duplicated
     assert client.post("/api/subscribe/nope/preview").status_code == 404
     assert client.post("/api/subscribe", json={"email": "not-an-email", "lat": 28.6, "lon": 77.2}).status_code == 422

@@ -50,6 +50,12 @@ class LocalSubscribers:
     def confirmed(self, sub: dict) -> bool:
         return True
 
+    def by_email(self, email: str) -> list[dict]:
+        return [s for s in self.all() if s["email"].lower() == email.lower()]
+
+    def resend_confirmation(self, sub: dict) -> None:
+        pass
+
 
 class AwsSubscribers:
     def __init__(self):
@@ -88,6 +94,24 @@ class AwsSubscribers:
         subs = self.sns.list_subscriptions_by_topic(TopicArn=sub["topic_arn"])["Subscriptions"]
         return any(s["SubscriptionArn"] != "PendingConfirmation" for s in subs)
 
+    def by_email(self, email: str) -> list[dict]:
+        from boto3.dynamodb.conditions import Attr
+
+        items, start = [], None
+        while True:
+            kwargs = {"FilterExpression": Attr("email").eq(email)}
+            if start:
+                kwargs["ExclusiveStartKey"] = start
+            page = self.table.scan(**kwargs)
+            items += page["Items"]
+            start = page.get("LastEvaluatedKey")
+            if not start:
+                return [_plain(i) for i in items]
+
+    def resend_confirmation(self, sub: dict) -> None:
+        """Subscribing the same address again makes SNS send a fresh confirmation email."""
+        self.sns.subscribe(TopicArn=sub["topic_arn"], Protocol="email", Endpoint=sub["email"])
+
 
 def _plain(item: dict) -> dict:
     out = dict(item)
@@ -103,8 +127,21 @@ def repo():
 
 # --- public API --------------------------------------------------------------------------------------------
 
+SAME_PLACE_DEG = 0.03  # about 3 km: the same person subscribing again for the same place reuses their subscription
+
+
 def subscribe(email: str, lat: float, lon: float, label: str, language: str) -> dict:
     r = repo()
+    email = email.strip().lower()
+    for existing in r.by_email(email):
+        if abs(existing["lat"] - lat) < SAME_PLACE_DEG and abs(existing["lon"] - lon) < SAME_PLACE_DEG:
+            existing["label"], existing["language"] = label.strip()[:80] or existing.get("label", ""), language
+            r.put(existing)
+            if r.confirmed(existing):
+                return {"id": existing["id"], "status": "subscribed", "note": "You were already subscribed for this place, and it is confirmed."}
+            r.resend_confirmation(existing)
+            return {"id": existing["id"], "status": "pending_confirmation",
+                    "note": "You subscribed for this place before but never confirmed. We have sent the confirmation email again."}
     sub = {"id": uuid.uuid4().hex[:10], "email": email, "lat": lat, "lon": lon, "label": label.strip()[:80], "language": language,
            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "last_alert_at": None, "last_alert_band": None}
     if isinstance(r, AwsSubscribers):

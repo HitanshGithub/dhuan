@@ -309,13 +309,12 @@ function Subscribe({ place }: { place: Place }) {
           <div className="flex items-start gap-2 text-emerald-200">
             <Check size={16} className="mt-0.5 shrink-0" /> <span>Subscribed for {place.name}.</span>
           </div>
-          {result?.status === 'pending_confirmation' ? (
+          <div className="mt-1 text-xs text-mist">{result?.note}</div>
+          {result?.status === 'pending_confirmation' && (
             <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-mist">
               <li>Open the email from <span className="text-white">AWS Notifications</span> (check spam) and click <span className="text-white">Confirm subscription</span>.</li>
               <li>Then press the button below to get today's advisory right away.</li>
             </ol>
-          ) : (
-            <div className="mt-1 text-xs text-mist">{result?.note}</div>
           )}
           <button onClick={sendNow} className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium hover:bg-white/15">
             <Send size={12} /> Send me today's advisory now
