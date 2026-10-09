@@ -23,8 +23,10 @@ export default function WindCanvas({ map, wind, frame }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const frameRef = useRef(frame)
   const windRef = useRef(wind)
-  frameRef.current = frame
-  windRef.current = wind
+  useEffect(() => {
+    frameRef.current = frame
+    windRef.current = wind
+  }, [frame, wind])
 
   useEffect(() => {
     const c = canvas.current
