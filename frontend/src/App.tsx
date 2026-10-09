@@ -22,6 +22,20 @@ export default function App() {
   const [fcError, setFcError] = useState<string | null>(null)
   const [about, setAbout] = useState(false)
 
+  // a shared link opens straight on its place: ?lat=..&lon=..&name=..
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    const lat = Number(q.get('lat'))
+    const lon = Number(q.get('lon'))
+    if (Number.isFinite(lat) && Number.isFinite(lon) && q.has('lat') && q.has('lon')) {
+      setPlace({ name: q.get('name') || `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`, lat, lon })
+    }
+  }, [])
+  useEffect(() => {
+    const url = place ? `?lat=${place.lat.toFixed(4)}&lon=${place.lon.toFixed(4)}&name=${encodeURIComponent(place.name)}` : window.location.pathname
+    window.history.replaceState(null, '', url)
+  }, [place])
+
   // the latest run, then warm the browser cache with its frames (nearest hours first)
   useEffect(() => {
     api

@@ -1,4 +1,4 @@
-import { Bell, Check, Loader2, Mail, Send, X } from 'lucide-react'
+import { Bell, Check, Link2, Loader2, Mail, Send, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api, type Advisory, type Place, type PointForecast } from '../api'
 import { BAND_COLOR, istTime, relativeDay } from '../format'
@@ -23,6 +23,17 @@ export default function PlacePanel({ place, forecast, loading, error, frame, onF
   const [lang, setLang] = useState<'en' | 'hi' | 'pa'>('en')
   const [advisory, setAdvisory] = useState<Advisory | null>(null)
   const [advLoading, setAdvLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const share = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      /* clipboard blocked: the URL bar already has the link */
+    }
+  }
 
   useEffect(() => {
     if (!forecast) return
@@ -47,9 +58,15 @@ export default function PlacePanel({ place, forecast, loading, error, frame, onF
             {place.lat.toFixed(2)}°N, {place.lon.toFixed(2)}°E
           </div>
         </div>
-        <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-mist/70 hover:bg-white/10 hover:text-white">
-          <X size={18} />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button onClick={share} title="Copy a link to this place" aria-label="Copy a link to this place" className="flex items-center gap-1 rounded-full px-2 py-1 text-xs text-mist/70 hover:bg-white/10 hover:text-white">
+            {copied ? <Check size={14} className="text-emerald-300" /> : <Link2 size={14} />}
+            {copied ? 'Copied' : 'Share'}
+          </button>
+          <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-mist/70 hover:bg-white/10 hover:text-white">
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 pb-4">

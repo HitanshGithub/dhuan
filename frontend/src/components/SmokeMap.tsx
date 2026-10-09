@@ -50,7 +50,7 @@ export default function SmokeMap({ meta, frame, place, onPick }: Props) {
       maxZoom: 11,
       attributionControl: false,
     })
-    m.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'Fires: NASA FIRMS · Winds: Open-Meteo · Map: OpenFreeMap, OpenStreetMap' }), 'bottom-left')
+    m.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'Fires: NASA FIRMS · Winds: Open-Meteo · Map: OpenFreeMap, OpenStreetMap' }), 'bottom-right')
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left')
     m.on('click', (e: MapMouseEvent) => pick.current(e.lngLat.lat, e.lngLat.lng))
     m.on('load', () => {
