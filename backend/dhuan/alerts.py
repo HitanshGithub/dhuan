@@ -127,21 +127,27 @@ def repo():
 
 # --- public API --------------------------------------------------------------------------------------------
 
-SAME_PLACE_DEG = 0.03  # about 3 km: the same person subscribing again for the same place reuses their subscription
+SAME_PLACE_DEG = 0.15  # about 15 km: the same person tapping "Delhi" twice lands 9 km apart and means the same subscription
+
+
+def _same_place(subs: list[dict], lat: float, lon: float) -> list[dict]:
+    return [s for s in subs if abs(s["lat"] - lat) < SAME_PLACE_DEG and abs(s["lon"] - lon) < SAME_PLACE_DEG]
 
 
 def subscribe(email: str, lat: float, lon: float, label: str, language: str) -> dict:
     r = repo()
     email = email.strip().lower()
-    for existing in r.by_email(email):
-        if abs(existing["lat"] - lat) < SAME_PLACE_DEG and abs(existing["lon"] - lon) < SAME_PLACE_DEG:
-            existing["label"], existing["language"] = label.strip()[:80] or existing.get("label", ""), language
-            r.put(existing)
-            if r.confirmed(existing):
-                return {"id": existing["id"], "status": "subscribed", "note": "You were already subscribed for this place, and it is confirmed."}
-            r.resend_confirmation(existing)
-            return {"id": existing["id"], "status": "pending_confirmation",
-                    "note": "You subscribed for this place before but never confirmed. We have sent the confirmation email again."}
+    same_place = _same_place(r.by_email(email), lat, lon)
+    if same_place:
+        # prefer a confirmed one: the same person may have subscribed twice and confirmed only the first
+        existing = next((s for s in same_place if r.confirmed(s)), same_place[0])
+        existing["label"], existing["language"] = label.strip()[:80] or existing.get("label", ""), language
+        r.put(existing)
+        if r.confirmed(existing):
+            return {"id": existing["id"], "status": "subscribed", "note": "You were already subscribed for this place, and it is confirmed."}
+        r.resend_confirmation(existing)
+        return {"id": existing["id"], "status": "pending_confirmation",
+                "note": "You subscribed for this place before but never confirmed. We have sent the confirmation email again."}
     sub = {"id": uuid.uuid4().hex[:10], "email": email, "lat": lat, "lon": lon, "label": label.strip()[:80], "language": language,
            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "last_alert_at": None, "last_alert_band": None}
     if isinstance(r, AwsSubscribers):
@@ -198,12 +204,16 @@ def send_now(sub_id: str) -> dict | None:
     sub = r.get(sub_id)
     if not sub:
         return None
+    target = sub
     if not r.confirmed(sub):
-        return {"id": sub_id, "sent": False, "status": "pending_confirmation",
-                "reason": "Not confirmed yet. Open the email from AWS Notifications, click \"Confirm subscription\", then press this again."}
+        # the same person may have an older, confirmed subscription (for any place): deliver through that one
+        target = next((s for s in r.by_email(sub["email"]) if s["id"] != sub_id and r.confirmed(s)), None)
+        if target is None:
+            return {"id": sub_id, "sent": False, "status": "pending_confirmation",
+                    "reason": "Not confirmed yet. Open the email from AWS Notifications, click \"Confirm subscription\", then press this again."}
     fc = forecast.point_forecast(sub["lat"], sub["lon"])
     if not fc:
         return {"id": sub_id, "sent": False, "status": "no_forecast", "reason": "No forecast for this place yet"}
     message = advisory.compose(fc, sub.get("label", ""), sub.get("language", "en"))
-    ref = r.deliver(sub, message)
+    ref = r.deliver(target, message)
     return {"id": sub_id, "sent": True, "status": "sent", "ref": ref, **message}
