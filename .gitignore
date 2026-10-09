@@ -1,0 +1,26 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+backend/.build/
+backend/out/
+.env
+.env.*
+
+# node
+node_modules/
+frontend/dist/
+
+# aws sam
+.aws-sam/
+samconfig.toml
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# downloaded raw data (fetched by scripts, not committed)
+data/raw/
