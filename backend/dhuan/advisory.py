@@ -37,6 +37,7 @@ ACTIONS = {
     },
 }
 LANGUAGE_NAMES = {"en": "English", "hi": "Hindi (Devanagari script)", "pa": "Punjabi (Gurmukhi script)"}
+BAND_HI = {"clear": "साफ़", "light": "हल्का", "moderate": "मध्यम", "heavy": "भारी", "severe": "गंभीर"}
 
 
 def template(fc: dict, label: str, language: str = "en") -> tuple[str, str]:
@@ -46,18 +47,29 @@ def template(fc: dict, label: str, language: str = "en") -> tuple[str, str]:
     sources = ", ".join(s["district"] for s in fc["sources"][:3]) or "fires across the region"
     lang = language if language in ACTIONS else "en"
     actions = ACTIONS[lang][peak["key"]]
+    quiet = peak["key"] == "clear"
     if lang == "hi":
-        subject = f"धुआं: {place} में {peak['ist']} के आसपास {peak['label']} स्तर का धुआं"
-        when = f"{arrival['ist']} से पहुंचना शुरू होगा और {peak['ist']} के आसपास सबसे ज़्यादा ({peak['ug']} µg/m³ अनुमानित) रहेगा" if arrival else \
-            f"{peak['ist']} के आसपास सबसे ज़्यादा ({peak['ug']} µg/m³ अनुमानित) रहेगा"
-        clears = f" {fc['clears']['ist']} तक हल्का हो जाएगा।" if fc.get("clears") else ""
-        lines = [f"{place} के लिए खेतों की आग का धुआं: {when}।{clears}", f"धुआं मुख्य रूप से यहां से आ रहा है: {sources}।", "", "क्या करें:"]
+        if quiet:
+            subject = f"धुआं: {place} में अगले 48 घंटे खेतों की आग का धुआं नहीं के बराबर"
+            lines = [f"{place} के लिए अगले 48 घंटों में खेतों की आग का धुआं नहीं के बराबर रहने का अनुमान है (अधिकतम लगभग {peak['ug']} µg/m³, {peak['ist']} के आसपास)।",
+                     "", "क्या करें:"]
+        else:
+            subject = f"धुआं: {place} में {peak['ist']} के आसपास {BAND_HI[peak['key']]} स्तर का धुआं"
+            when = f"{arrival['ist']} से पहुंचना शुरू होगा और {peak['ist']} के आसपास सबसे ज़्यादा ({peak['ug']} µg/m³ अनुमानित, {BAND_HI[peak['key']]}) रहेगा" if arrival else \
+                f"{peak['ist']} के आसपास सबसे ज़्यादा ({peak['ug']} µg/m³ अनुमानित, {BAND_HI[peak['key']]}) रहेगा"
+            clears = f" {fc['clears']['ist']} तक हल्का हो जाएगा।" if fc.get("clears") else ""
+            lines = [f"{place} के लिए खेतों की आग का धुआं: {when}।{clears}", f"धुआं मुख्य रूप से यहां से आ रहा है: {sources}।", "", "क्या करें:"]
     else:
-        subject = f"Dhuan: {peak['label'].lower()} smoke at {place} around {peak['ist']}"
-        when = f"starts arriving around {arrival['ist']} and peaks around {peak['ist']} (about {peak['ug']} µg/m³ of PM2.5, estimated)" if arrival else \
-            f"peaks around {peak['ist']} (about {peak['ug']} µg/m³ of PM2.5, estimated)"
-        clears = f" It should thin out by {fc['clears']['ist']}." if fc.get("clears") else ""
-        lines = [f"Farm-fire smoke at {place}: {when}.{clears}", f"Most of it comes from fires in {sources}.", "", "What to do:"]
+        if quiet:
+            subject = f"Dhuan: little farm-fire smoke expected at {place} in the next 48 hours"
+            lines = [f"Little or no farm-fire smoke is expected at {place} in the next 48 hours (at most about {peak['ug']} µg/m³, around {peak['ist']}).",
+                     "", "What to do:"]
+        else:
+            subject = f"Dhuan: {peak['label'].lower()} smoke at {place} around {peak['ist']}"
+            when = f"starts arriving around {arrival['ist']} and peaks around {peak['ist']} (about {peak['ug']} µg/m³ of PM2.5, estimated: {peak['label'].lower()})" if arrival else \
+                f"peaks around {peak['ist']} (about {peak['ug']} µg/m³ of PM2.5, estimated: {peak['label'].lower()})"
+            clears = f" It should thin out by {fc['clears']['ist']}." if fc.get("clears") else ""
+            lines = [f"Farm-fire smoke at {place}: {when}.{clears}", f"Most of it comes from fires in {sources}.", "", "What to do:"]
     lines += [f"- {a}" for a in actions]
     lines += ["", f"Right now: {now['label']} ({now['ug']} µg/m³ estimated). Forecast made {fc['generated_at'][:16].replace('T', ' ')} UTC from "
                   f"{fc['fires']['count']} satellite fire detections and the wind forecast.",

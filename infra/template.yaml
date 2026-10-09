@@ -1,0 +1,315 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  Dhuan - a live forecast of where North India's farm-fire smoke is going: an hourly Step Functions run that
+  reads NASA fire detections and the wind forecast, simulates the smoke, renders it to S3 behind CloudFront,
+  and emails subscribers a day ahead in their language.
+
+Parameters:
+  FrontendOrigin:
+    Type: String
+    Default: http://localhost:5173
+    Description: Origin of the web app allowed by CORS, e.g. https://main.xxxx.amplifyapp.com
+  ModelId:
+    Type: String
+    Default: mistral.ministral-3-14b-instruct
+    Description: Bedrock model (Converse API) that writes advisories in Hindi and Punjabi
+  FirmsWindow:
+    Type: String
+    Default: 48h
+    AllowedValues: [24h, 48h, 7d]
+    Description: How far back to read fire detections
+  GitHubRepo:
+    Type: String
+    Default: ""
+    Description: owner/repo allowed to deploy this stack from GitHub Actions with OIDC. Empty disables the CI/CD role.
+  ExistingOidcProviderArn:
+    Type: String
+    Default: ""
+    Description: ARN of an existing token.actions.githubusercontent.com OIDC provider (an account has at most one); empty creates it.
+
+Conditions:
+  HasGitHubRepo: !Not [!Equals [!Ref GitHubRepo, ""]]
+  CreateOidcProvider: !And
+    - !Condition HasGitHubRepo
+    - !Equals [!Ref ExistingOidcProviderArn, ""]
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Architectures: [x86_64]
+    MemorySize: 1024
+    Tracing: Active
+    Environment:
+      Variables:
+        DHUAN_STORAGE: s3
+        DHUAN_BUCKET: !Ref DataBucket
+        DHUAN_TABLE: !Ref SubscribersTable
+        DHUAN_REGION: !Ref AWS::Region
+        DHUAN_LLM: bedrock
+        DHUAN_MODEL: !Ref ModelId
+        DHUAN_DATA_DIR: /var/task/data
+        DHUAN_DATA_URL: !Sub https://${DataDistribution.DomainName}
+        DHUAN_FRONTEND_ORIGIN: !Ref FrontendOrigin
+        DHUAN_FIRMS_WINDOW: !Ref FirmsWindow
+
+Resources:
+  # ---------------------------------------------------------------- run outputs: S3 behind CloudFront
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: keep-a-week-of-runs
+            Status: Enabled
+            Prefix: runs/
+            ExpirationInDays: 7
+          - Id: keep-a-week-of-outbox
+            Status: Enabled
+            Prefix: outbox/
+            ExpirationInDays: 7
+
+  DataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${DataBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${DataDistribution}
+
+  DataOriginAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${AWS::StackName}-data
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  DataDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Dhuan forecast frames and run metadata
+        HttpVersion: http2and3
+        PriceClass: PriceClass_200
+        Origins:
+          - Id: data
+            DomainName: !GetAtt DataBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt DataOriginAccess.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: data
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized (honours the objects' Cache-Control)
+          OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf # Managed-CORS-S3Origin
+          ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c # Managed-SimpleCORS
+
+  # ---------------------------------------------------------------- subscribers
+  SubscribersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+
+  # ---------------------------------------------------------------- API
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: [!Ref FrontendOrigin]
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [content-type]
+        MaxAge: 600
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dhuan.handlers.api_handler
+      CodeUri: ../backend/.build/lambda # on each function, not in Globals, so `aws cloudformation package` also works
+      Timeout: 29
+      MemorySize: 1536
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SubscribersTable
+        - Statement:
+            - Effect: Allow
+              Action: [sns:CreateTopic, sns:Subscribe, sns:Publish, sns:TagResource]
+              Resource: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:dhuan-sub-*
+            - Effect: Allow
+              Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+              Resource: "*"
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+
+  # ---------------------------------------------------------------- the hourly forecast run
+  PipelineFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dhuan.handlers.step_handler
+      CodeUri: ../backend/.build/lambda
+      Timeout: 600
+      MemorySize: 3008
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DataBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SubscribersTable
+        - Statement:
+            - Effect: Allow
+              Action: [sns:Publish]
+              Resource: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:dhuan-sub-*
+            - Effect: Allow
+              Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+              Resource: "*"
+
+  ForecastStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Type: STANDARD
+      Tracing:
+        Enabled: true
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref PipelineFunction
+      Events:
+        Hourly:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+            Description: Fetch fires and winds, simulate the smoke, alert subscribers
+            Enabled: true
+      DefinitionSubstitutions:
+        PipelineArn: !GetAtt PipelineFunction.Arn
+      Definition:
+        Comment: Dhuan hourly forecast - fetch live fires and winds, simulate 48 h of smoke transport, render frames, alert subscribers
+        StartAt: FetchFiresAndWinds
+        States:
+          FetchFiresAndWinds:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters: {FunctionName: "${PipelineArn}", Payload: {step: fetch}}
+            OutputPath: $.Payload
+            Retry: [{ErrorEquals: [States.ALL], IntervalSeconds: 30, MaxAttempts: 3, BackoffRate: 2}]
+            Next: SimulateSmoke
+          SimulateSmoke:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters: {FunctionName: "${PipelineArn}", Payload: {step: simulate, run_id.$: $.run_id}}
+            OutputPath: $.Payload
+            Retry: [{ErrorEquals: [Lambda.ServiceException, Lambda.TooManyRequestsException], IntervalSeconds: 10, MaxAttempts: 2, BackoffRate: 2}]
+            Next: AlertSubscribers
+          AlertSubscribers:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters: {FunctionName: "${PipelineArn}", Payload: {step: alerts, run_id.$: $.run_id}}
+            OutputPath: $.Payload
+            End: true
+
+  # ---------------------------------------------------------------- CI/CD (GitHub Actions -> this stack)
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOidcProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1]
+
+  GitHubDeployRole:
+    Type: AWS::IAM::Role
+    Condition: HasGitHubRepo
+    Properties:
+      RoleName: dhuan-github-deploy
+      Description: !Sub Lets GitHub Actions in ${GitHubRepo} deploy the dhuan stack and site
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If [CreateOidcProvider, !Ref GitHubOidcProvider, !Ref ExistingOidcProviderArn]
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                # GitHub issues subjects with immutable ids (repo:owner@123/repo@456:ref:...); accept that and the plain form
+                token.actions.githubusercontent.com:sub:
+                  - !Sub repo:${GitHubRepo}:*
+                  - !Sub
+                    - repo:${Owner}@*/${Name}@*:*
+                    - Owner: !Select [0, !Split ["/", !Ref GitHubRepo]]
+                      Name: !Select [1, !Split ["/", !Ref GitHubRepo]]
+      Policies:
+        - PolicyName: deploy-dhuan
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [cloudformation:*, apigateway:*, states:*, dynamodb:*, lambda:*, amplify:*, logs:*, xray:*, events:*,
+                         cloudfront:*, tag:GetResources]
+                Resource: "*"
+              - Effect: Allow
+                Action: s3:*
+                Resource:
+                  - arn:aws:s3:::aws-sam-cli-managed-default*
+                  - arn:aws:s3:::aws-sam-cli-managed-default*/*
+                  - !GetAtt DataBucket.Arn
+                  - !Sub ${DataBucket.Arn}/*
+              - Effect: Allow
+                Action: [iam:CreateRole, iam:DeleteRole, iam:GetRole, iam:TagRole, iam:UntagRole, iam:PassRole,
+                         iam:AttachRolePolicy, iam:DetachRolePolicy, iam:PutRolePolicy, iam:DeleteRolePolicy,
+                         iam:GetRolePolicy, iam:ListRolePolicies, iam:ListAttachedRolePolicies, iam:UpdateAssumeRolePolicy]
+                Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/dhuan-*
+
+Outputs:
+  ApiUrl:
+    Description: Set VITE_API_BASE to this when building the site
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  DataUrl:
+    Description: CloudFront URL that serves the run outputs
+    Value: !Sub https://${DataDistribution.DomainName}
+  DataBucketName:
+    Value: !Ref DataBucket
+  StateMachineArn:
+    Value: !Ref ForecastStateMachine
+  GitHubDeployRoleArn:
+    Condition: HasGitHubRepo
+    Description: Set this as the AWS_DEPLOY_ROLE_ARN variable in the GitHub repository
+    Value: !GetAtt GitHubDeployRole.Arn

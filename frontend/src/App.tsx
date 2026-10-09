@@ -102,18 +102,21 @@ export default function App() {
               </a>
             </div>
           </div>
-          <p className="mt-1 text-sm leading-snug text-mist">Where North India's farm-fire smoke is going, when it reaches you, and from where.</p>
-          {meta && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-mist/80">
-              <span className="pulse relative inline-block h-2 w-2 rounded-full bg-emerald-400" />
-              Live · {formatCount(meta.fires.count)} fires seen in the last 48 h · updated {istTime(meta.generated_at)} IST
+          {/* on a phone with a place open, keep only the brand row so the map stays visible */}
+          <div className={place ? 'hidden md:block' : ''}>
+            <p className="mt-1 text-sm leading-snug text-mist">Where North India's farm-fire smoke is going, when it reaches you, and from where.</p>
+            {meta && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-mist/80">
+                <span className="pulse relative inline-block h-2 w-2 rounded-full bg-emerald-400" />
+                Live · {formatCount(meta.fires.count)} fires seen in the last 48 h · updated {istTime(meta.generated_at)} IST
+              </div>
+            )}
+            {metaError && <div className="mt-2 rounded-lg bg-red-500/10 px-2 py-1 text-xs text-red-200">No forecast yet: {metaError}</div>}
+            <div className="mt-3">
+              <Search onPlace={setPlace} />
             </div>
-          )}
-          {metaError && <div className="mt-2 rounded-lg bg-red-500/10 px-2 py-1 text-xs text-red-200">No forecast yet: {metaError}</div>}
-          <div className="mt-3">
-            <Search onPlace={setPlace} />
+            <p className="mt-2 text-[11px] text-mist/60">Or tap anywhere on the map.</p>
           </div>
-          <p className="mt-2 text-[11px] text-mist/60">Or tap anywhere on the map.</p>
         </div>
       </div>
 
@@ -126,7 +129,7 @@ export default function App() {
 
       {/* place panel: right card on desktop, bottom sheet on phones */}
       {place && (
-        <div className="absolute inset-x-0 bottom-0 z-20 h-[55vh] p-2 md:inset-x-auto md:bottom-36 md:right-4 md:top-4 md:h-auto md:w-[400px] md:p-0">
+        <div className="absolute inset-x-0 bottom-0 z-20 h-[50vh] p-2 md:inset-x-auto md:bottom-36 md:right-4 md:top-4 md:h-auto md:w-[400px] md:p-0">
           <PlacePanel place={place} forecast={forecast} loading={fcLoading} error={fcError} frame={frame} onFrame={setFrame} onClose={() => setPlace(null)} />
         </div>
       )}
@@ -135,7 +138,7 @@ export default function App() {
       {meta && (
         <div
           className={`absolute z-10 left-1/2 w-[min(760px,calc(100%-16px))] -translate-x-1/2 transition-all ${
-            place ? 'bottom-[calc(55vh+8px)] md:bottom-4 md:left-4 md:w-[min(760px,calc(100%-440px))] md:translate-x-0' : 'bottom-3 md:bottom-4'
+            place ? 'bottom-[calc(50vh+8px)] md:bottom-4 md:left-4 md:w-[min(760px,calc(100%-440px))] md:translate-x-0' : 'bottom-3 md:bottom-4'
           }`}
         >
           <Timeline meta={meta} frame={frame} playing={playing} onFrame={setFrame} onPlay={setPlaying} />

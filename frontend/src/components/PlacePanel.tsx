@@ -119,12 +119,12 @@ function Headline({ fc }: { fc: PointForecast }) {
           </div>
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+      <div className="mt-3 flex flex-wrap gap-2 text-sm [&>*]:min-w-[45%] [&>*]:flex-1">
         {fc.arrival && (
           <Moment label="Arrives" iso={fc.arrival.time} nowIso={nowIso} />
         )}
         <Moment
-          label={peakAhead ? 'Peaks' : 'Peak was'}
+          label={fc.peak.key === 'clear' ? 'Highest' : peakAhead ? 'Peaks' : 'Peak was'}
           iso={fc.peak.time}
           nowIso={nowIso}
           sub={`${fc.peak.label} · ~${fc.peak.ug} µg/m³`}
@@ -187,10 +187,14 @@ function Chart({ fc, frame, onFrame }: { fc: PointForecast; frame: number; onFra
           <span key={i} className="pointer-events-none absolute bottom-2 top-2 w-px bg-white/15" style={{ left: `calc(${(i / frames.length) * 100}% + 8px)` }} />
         ))}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-mist/60">
-        <span>now</span>
-        <span>tomorrow</span>
-        <span>+48 h</span>
+      <div className="relative mt-1 h-4 text-[10px] text-mist/60">
+        <span className="absolute left-0">now</span>
+        {dayMarks.map((i) => (
+          <span key={i} className="absolute -translate-x-1/2" style={{ left: `calc(${(i / frames.length) * 100}% + 8px)` }}>
+            {relativeDay(frames[i].time, nowIso)}
+          </span>
+        ))}
+        <span className="absolute right-0">+48 h</span>
       </div>
     </section>
   )

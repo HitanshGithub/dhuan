@@ -50,7 +50,10 @@ export default function Timeline({ meta, frame, playing, onFrame, onPlay }: Prop
               )}
             </div>
           </div>
-          <div className="relative mt-2">
+          <div className="relative mt-5">
+            <span className="pointer-events-none absolute -top-4 -translate-x-1/2 text-[10px] font-semibold text-ember" style={{ left: pct(meta.now_frame) }}>
+              now
+            </span>
             <input
               type="range"
               className="scrub"
@@ -70,13 +73,9 @@ export default function Timeline({ meta, frame, playing, onFrame, onPlay }: Prop
                   {t.label}
                 </span>
               ))}
-              <span className="absolute -translate-x-1/2 whitespace-nowrap font-semibold text-ember" style={{ left: pct(meta.now_frame) }}>
-                <span className="mx-auto block h-1.5 w-px bg-ember" />
-                now
-              </span>
             </div>
           </div>
-          <div className="mt-6 flex items-center justify-between text-[11px] text-mist/70">
+          <div className="mt-7 flex items-center justify-between text-[11px] text-mist/70">
             <span>{assumed ? 'Assumes the fields seen burning in the last 24 h burn again at the same hours.' : 'Smoke from fires detected by satellite in the last 48 h.'}</span>
             {!isNow && (
               <button onClick={() => onFrame(meta.now_frame)} className="ml-3 inline-flex shrink-0 items-center gap-1 text-ember hover:underline">

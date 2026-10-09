@@ -24,3 +24,9 @@ Thumbs.db
 
 # downloaded raw data (fetched by scripts, not committed)
 data/raw/
+
+# copied from node_modules by frontend/scripts/maplibre-worker.mjs
+frontend/public/maplibre/
+
+# cloudformation package output
+infra/.packaged.yaml

@@ -1,0 +1,122 @@
+name: Deploy to AWS
+
+# Every push to main redeploys the API and pipeline (SAM) and the site (Amplify Hosting).
+# GitHub authenticates with OIDC by assuming AWS_DEPLOY_ROLE_ARN - no AWS keys are stored in GitHub.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - backend/**
+      - frontend/**
+      - infra/**
+      - data/**
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  STACK_NAME: dhuan
+
+jobs:
+  deploy:
+    name: Test, deploy stack, deploy site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv and Python 3.13
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Run backend tests
+        working-directory: backend
+        run: uv run pytest -q
+
+      - name: Bundle the Lambda package
+        working-directory: backend
+        run: uv run python scripts/build_lambda.py
+
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Find the site origin (creates the Amplify app on first run)
+        id: site
+        run: echo "origin=$(uv run --project backend python infra/deploy_frontend.py --region "$AWS_REGION" --ensure-only | tail -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy the stack
+        run: |
+          sam deploy \
+            --template-file infra/template.yaml \
+            --stack-name "$STACK_NAME" \
+            --region "$AWS_REGION" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              FrontendOrigin="${{ steps.site.outputs.origin }}" \
+              GitHubRepo="${{ github.repository }}" \
+              ExistingOidcProviderArn="${{ vars.AWS_OIDC_PROVIDER_ARN }}"
+
+      - name: Read stack outputs
+        id: stack
+        run: |
+          out() { aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
+                    --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text; }
+          echo "api=$(out ApiUrl)" >> "$GITHUB_OUTPUT"
+          echo "state_machine=$(out StateMachineArn)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build the site
+        working-directory: frontend
+        env:
+          VITE_API_BASE: ${{ steps.stack.outputs.api }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy the site to Amplify Hosting
+        run: uv run --project backend python infra/deploy_frontend.py --region "$AWS_REGION"
+
+      - name: Run a forecast and smoke test
+        env:
+          API_URL: ${{ steps.stack.outputs.api }}
+          SITE_ORIGIN: ${{ steps.site.outputs.origin }}
+          STATE_MACHINE: ${{ steps.stack.outputs.state_machine }}
+        run: |
+          set -e
+          curl -fsS "$API_URL/api/health" | tee /dev/stderr | grep -q '"ok":true'
+          arn=$(aws stepfunctions start-execution --state-machine-arn "$STATE_MACHINE" --region "$AWS_REGION" --query executionArn --output text)
+          for _ in $(seq 1 40); do
+            sleep 10
+            status=$(aws stepfunctions describe-execution --execution-arn "$arn" --region "$AWS_REGION" --query status --output text)
+            [ "$status" = "RUNNING" ] || break
+          done
+          echo "forecast run finished as: $status"
+          [ "$status" = "SUCCEEDED" ]
+          curl -fsS "$API_URL/api/forecast?lat=28.64&lon=77.22" | head -c 300; echo
+          curl -fsS -o /dev/null -w 'site %{http_code}\n' "$SITE_ORIGIN"

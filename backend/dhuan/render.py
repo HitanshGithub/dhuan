@@ -10,8 +10,9 @@ from PIL import Image, ImageFilter
 # estimated PM2.5 contribution (ug/m3) -> RGBA. Transparent below the first stop.
 STOPS = [
     (0.0, (255, 235, 180, 0)),
-    (8.0, (255, 230, 160, 70)),
-    (25.0, (255, 190, 90, 130)),
+    (1.5, (255, 235, 185, 28)),  # a faint haze, so the plume's shape is visible before it counts as "light"
+    (8.0, (255, 225, 150, 95)),
+    (25.0, (255, 190, 90, 145)),
     (50.0, (255, 130, 50, 175)),
     (100.0, (225, 60, 50, 210)),
     (200.0, (150, 20, 80, 235)),

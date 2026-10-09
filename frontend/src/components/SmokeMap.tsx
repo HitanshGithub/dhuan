@@ -4,6 +4,8 @@ import type { ImageSource, Map as MLMap, MapMouseEvent } from 'maplibre-gl'
 import { dataUrl, frameImage, type Place, type RunMeta } from '../api'
 
 const STYLE = 'https://tiles.openfreemap.org/styles/dark'
+// MapLibre 6 looks for its worker next to its own module URL, which Vite rewrites; serve it from /public instead
+maplibregl.setWorkerUrl(`${import.meta.env.BASE_URL}maplibre/maplibre-gl-worker.mjs`)
 
 interface Props {
   meta: RunMeta | null
@@ -140,5 +142,10 @@ export default function SmokeMap({ meta, frame, place, onPick }: Props) {
     m.easeTo({ center: [place.lon, place.lat], zoom: Math.max(m.getZoom(), 6.2), padding, duration: 900 })
   }, [place])
 
-  return <div ref={container} className="absolute inset-0" aria-label="Map of North India with smoke forecast" />
+  // the wrapper is positioned; the inner div is the map container, whose position MapLibre's CSS sets to relative
+  return (
+    <div className="absolute inset-0">
+      <div ref={container} className="h-full w-full" aria-label="Map of North India with smoke forecast" />
+    </div>
+  )
 }

@@ -117,7 +117,10 @@ def step_simulate(run_id: str, store=None, now: datetime | None = None) -> dict:
 def main(argv: list[str]) -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     run_id = run_id_for(floor_hour())
-    if "--reuse" in argv:  # simulate again on the inputs already saved for this hour
+    if "--reuse" in argv:  # simulate again on the most recent saved inputs (handy while tuning the model)
+        latest = get_json(storage(), "latest.json")
+        if not storage().get(f"runs/{run_id}/inputs/fires.json") and latest:
+            run_id = latest["run_id"]
         print("reusing inputs for", run_id)
     else:
         print("fetch:", step_fetch(run_id))
