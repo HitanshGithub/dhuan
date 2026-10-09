@@ -1,0 +1,153 @@
+import { Code2, Flame, Info } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { api, frameImage, reverseName, type Place, type PointForecast, type RunMeta } from './api'
+import About from './components/About'
+import Legend from './components/Legend'
+import PlacePanel from './components/PlacePanel'
+import Search from './components/Search'
+import SmokeMap from './components/SmokeMap'
+import Timeline from './components/Timeline'
+import { formatCount, istTime } from './format'
+
+const REPO = 'https://github.com/HitanshGithub/dhuan'
+
+export default function App() {
+  const [meta, setMeta] = useState<RunMeta | null>(null)
+  const [metaError, setMetaError] = useState<string | null>(null)
+  const [frame, setFrame] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const [place, setPlace] = useState<Place | null>(null)
+  const [forecast, setForecast] = useState<PointForecast | null>(null)
+  const [fcLoading, setFcLoading] = useState(false)
+  const [fcError, setFcError] = useState<string | null>(null)
+  const [about, setAbout] = useState(false)
+
+  // the latest run, then warm the browser cache with its frames (nearest hours first)
+  useEffect(() => {
+    api
+      .latest()
+      .then((m) => {
+        setMeta(m)
+        setFrame(m.now_frame)
+        const order = [...m.times.keys()].sort((a, b) => Math.abs(a - m.now_frame) - Math.abs(b - m.now_frame))
+        let i = 0
+        const next = () => {
+          if (i >= order.length) return
+          const img = new Image()
+          img.onload = img.onerror = () => {
+            i += 1
+            next()
+          }
+          img.src = frameImage(m, order[i])
+        }
+        next()
+        next()
+      })
+      .catch((e: Error) => setMetaError(e.message))
+  }, [])
+
+  // playback
+  useEffect(() => {
+    if (!playing || !meta) return
+    const id = window.setInterval(() => setFrame((f) => (f + 1 >= meta.times.length ? meta.now_frame : f + 1)), 240)
+    return () => window.clearInterval(id)
+  }, [playing, meta])
+
+  // a tap on the map
+  const pick = useCallback((lat: number, lon: number) => {
+    const fallback = `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`
+    setPlace({ name: fallback, lat, lon })
+    reverseName(lat, lon).then((name) => name && setPlace((p) => (p && p.lat === lat && p.lon === lon ? { ...p, name } : p)))
+  }, [])
+
+  // the forecast for the chosen place
+  useEffect(() => {
+    if (!place) {
+      setForecast(null)
+      setFcError(null)
+      return
+    }
+    let cancelled = false
+    setFcLoading(true)
+    setFcError(null)
+    api
+      .forecast(place.lat, place.lon)
+      .then((fc) => !cancelled && setForecast(fc))
+      .catch((e: Error) => !cancelled && setFcError(e.message))
+      .finally(() => !cancelled && setFcLoading(false))
+    return () => {
+      cancelled = true
+    }
+  }, [place?.lat, place?.lon]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-ink">
+      <SmokeMap meta={meta} frame={frame} place={place} onPick={pick} />
+
+      {/* header */}
+      <div className="absolute left-3 top-3 z-10 w-[min(400px,calc(100%-24px))] md:left-4 md:top-4">
+        <div className="glass rounded-2xl p-3 shadow-2xl md:p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2">
+              <Flame className="translate-y-1 text-ember" size={22} />
+              <span className="font-display text-2xl font-bold tracking-tight">Dhuan</span>
+              <span className="font-display text-lg text-mist/70">धुआं</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setAbout(true)} className="rounded-full p-1.5 text-mist hover:bg-white/10 hover:text-white" aria-label="How it works" title="How it works">
+                <Info size={18} />
+              </button>
+              <a href={REPO} target="_blank" rel="noreferrer" className="rounded-full p-1.5 text-mist hover:bg-white/10 hover:text-white" aria-label="Source on GitHub" title="Source on GitHub">
+                <Code2 size={18} />
+              </a>
+            </div>
+          </div>
+          <p className="mt-1 text-sm leading-snug text-mist">Where North India's farm-fire smoke is going, when it reaches you, and from where.</p>
+          {meta && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-mist/80">
+              <span className="pulse relative inline-block h-2 w-2 rounded-full bg-emerald-400" />
+              Live · {formatCount(meta.fires.count)} fires seen in the last 48 h · updated {istTime(meta.generated_at)} IST
+            </div>
+          )}
+          {metaError && <div className="mt-2 rounded-lg bg-red-500/10 px-2 py-1 text-xs text-red-200">No forecast yet: {metaError}</div>}
+          <div className="mt-3">
+            <Search onPlace={setPlace} />
+          </div>
+          <p className="mt-2 text-[11px] text-mist/60">Or tap anywhere on the map.</p>
+        </div>
+      </div>
+
+      {/* legend (desktop, when the panel is closed) */}
+      {meta && !place && (
+        <div className="absolute right-4 top-4 z-10 hidden md:block">
+          <Legend meta={meta} />
+        </div>
+      )}
+
+      {/* place panel: right card on desktop, bottom sheet on phones */}
+      {place && (
+        <div className="absolute inset-x-0 bottom-0 z-20 h-[55vh] p-2 md:inset-x-auto md:bottom-36 md:right-4 md:top-4 md:h-auto md:w-[400px] md:p-0">
+          <PlacePanel place={place} forecast={forecast} loading={fcLoading} error={fcError} frame={frame} onFrame={setFrame} onClose={() => setPlace(null)} />
+        </div>
+      )}
+
+      {/* timeline */}
+      {meta && (
+        <div
+          className={`absolute z-10 left-1/2 w-[min(760px,calc(100%-16px))] -translate-x-1/2 transition-all ${
+            place ? 'bottom-[calc(55vh+8px)] md:bottom-4 md:left-4 md:w-[min(760px,calc(100%-440px))] md:translate-x-0' : 'bottom-3 md:bottom-4'
+          }`}
+        >
+          <Timeline meta={meta} frame={frame} playing={playing} onFrame={setFrame} onPlay={setPlaying} />
+          {!place && (
+            <div className="mt-2 md:hidden">
+              <Legend meta={meta} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {about && <About meta={meta} onClose={() => setAbout(false)} />}
+    </div>
+  )
+}

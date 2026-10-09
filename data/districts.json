@@ -1,0 +1,1402 @@
+[
+{
+"district": "West Champaran",
+"state": "Bihar"
+},
+{
+"district": "East Champaran",
+"state": "Bihar"
+},
+{
+"district": "Sitamarhi",
+"state": "Bihar"
+},
+{
+"district": "Sheohar",
+"state": "Bihar"
+},
+{
+"district": "Gopalganj",
+"state": "Bihar"
+},
+{
+"district": "Samastipur",
+"state": "Bihar"
+},
+{
+"district": "Katihar",
+"state": "Bihar"
+},
+{
+"district": "Khagaria",
+"state": "Bihar"
+},
+{
+"district": "Bhojpur",
+"state": "Bihar"
+},
+{
+"district": "Buxar",
+"state": "Bihar"
+},
+{
+"district": "Darbhanga",
+"state": "Bihar"
+},
+{
+"district": "Saharsa",
+"state": "Bihar"
+},
+{
+"district": "Kaimur",
+"state": "Bihar"
+},
+{
+"district": "Rohtas",
+"state": "Bihar"
+},
+{
+"district": "Jamui",
+"state": "Bihar"
+},
+{
+"district": "Banka",
+"state": "Bihar"
+},
+{
+"district": "Nawada",
+"state": "Bihar"
+},
+{
+"district": "Gaya",
+"state": "Bihar"
+},
+{
+"district": "Munger",
+"state": "Bihar"
+},
+{
+"district": "Vaishali",
+"state": "Bihar"
+},
+{
+"district": "Begusarai",
+"state": "Bihar"
+},
+{
+"district": "Bhagalpur",
+"state": "Bihar"
+},
+{
+"district": "Lakhisarai",
+"state": "Bihar"
+},
+{
+"district": "Sheikhpura",
+"state": "Bihar"
+},
+{
+"district": "Arwal",
+"state": "Bihar"
+},
+{
+"district": "Jehanabad",
+"state": "Bihar"
+},
+{
+"district": "Nalanda",
+"state": "Bihar"
+},
+{
+"district": "Patna",
+"state": "Bihar"
+},
+{
+"district": "Saran",
+"state": "Bihar"
+},
+{
+"district": "Siwan",
+"state": "Bihar"
+},
+{
+"district": "Muzaffarpur",
+"state": "Bihar"
+},
+{
+"district": "Madhepura",
+"state": "Bihar"
+},
+{
+"district": "Araria",
+"state": "Bihar"
+},
+{
+"district": "Supaul",
+"state": "Bihar"
+},
+{
+"district": "Madhubani",
+"state": "Bihar"
+},
+{
+"district": "Purnia",
+"state": "Bihar"
+},
+{
+"district": "Kishanganj",
+"state": "Bihar"
+},
+{
+"district": "Aurangabad",
+"state": "Bihar"
+},
+{
+"district": "Chandigarh",
+"state": "Chandigarh"
+},
+{
+"district": "Delhi",
+"state": "Delhi"
+},
+{
+"district": "Valsad",
+"state": "Gujarat"
+},
+{
+"district": "Amreli",
+"state": "Gujarat"
+},
+{
+"district": "Dang",
+"state": "Gujarat"
+},
+{
+"district": "Vadodara",
+"state": "Gujarat"
+},
+{
+"district": "Bharuch",
+"state": "Gujarat"
+},
+{
+"district": "Porbandar",
+"state": "Gujarat"
+},
+{
+"district": "Narmada",
+"state": "Gujarat"
+},
+{
+"district": "Surat",
+"state": "Gujarat"
+},
+{
+"district": "Tapi",
+"state": "Gujarat"
+},
+{
+"district": "Botad",
+"state": "Gujarat"
+},
+{
+"district": "Chhota Udaipur",
+"state": "Gujarat"
+},
+{
+"district": "Gir Somnath",
+"state": "Gujarat"
+},
+{
+"district": "Rajkot",
+"state": "Gujarat"
+},
+{
+"district": "Bhavnagar",
+"state": "Gujarat"
+},
+{
+"district": "Junagadh",
+"state": "Gujarat"
+},
+{
+"district": "Jamnagar",
+"state": "Gujarat"
+},
+{
+"district": "Devbhumi Dwarka",
+"state": "Gujarat"
+},
+{
+"district": "Navsari",
+"state": "Gujarat"
+},
+{
+"district": "Patan",
+"state": "Gujarat"
+},
+{
+"district": "Mehsana",
+"state": "Gujarat"
+},
+{
+"district": "Gandhinagar",
+"state": "Gujarat"
+},
+{
+"district": "Ahmedabad",
+"state": "Gujarat"
+},
+{
+"district": "Panchmahal",
+"state": "Gujarat"
+},
+{
+"district": "Dahod",
+"state": "Gujarat"
+},
+{
+"district": "Aravalli",
+"state": "Gujarat"
+},
+{
+"district": "Mahisagar",
+"state": "Gujarat"
+},
+{
+"district": "Sabarkantha",
+"state": "Gujarat"
+},
+{
+"district": "Kutch",
+"state": "Gujarat"
+},
+{
+"district": "Surendranagar",
+"state": "Gujarat"
+},
+{
+"district": "Kheda",
+"state": "Gujarat"
+},
+{
+"district": "Anand",
+"state": "Gujarat"
+},
+{
+"district": "Morbi",
+"state": "Gujarat"
+},
+{
+"district": "Banaskantha",
+"state": "Gujarat"
+},
+{
+"district": "Vav-Tharad",
+"state": "Gujarat"
+},
+{
+"district": "Jhajjar",
+"state": "Haryana"
+},
+{
+"district": "Gurugram",
+"state": "Haryana"
+},
+{
+"district": "Faridabad",
+"state": "Haryana"
+},
+{
+"district": "Mahendragarh",
+"state": "Haryana"
+},
+{
+"district": "Rewari",
+"state": "Haryana"
+},
+{
+"district": "Nuh",
+"state": "Haryana"
+},
+{
+"district": "Palwal",
+"state": "Haryana"
+},
+{
+"district": "Charkhi Dadri",
+"state": "Haryana"
+},
+{
+"district": "Yamunanagar",
+"state": "Haryana"
+},
+{
+"district": "Kurukshetra",
+"state": "Haryana"
+},
+{
+"district": "Kaithal",
+"state": "Haryana"
+},
+{
+"district": "Sirsa",
+"state": "Haryana"
+},
+{
+"district": "Karnal",
+"state": "Haryana"
+},
+{
+"district": "Jind",
+"state": "Haryana"
+},
+{
+"district": "Fatehabad",
+"state": "Haryana"
+},
+{
+"district": "Hisar",
+"state": "Haryana"
+},
+{
+"district": "Panipat",
+"state": "Haryana"
+},
+{
+"district": "Sonipat",
+"state": "Haryana"
+},
+{
+"district": "Bhiwani",
+"state": "Haryana"
+},
+{
+"district": "Rohtak",
+"state": "Haryana"
+},
+{
+"district": "Panchkula",
+"state": "Haryana"
+},
+{
+"district": "Ambala",
+"state": "Haryana"
+},
+{
+"district": "Lahaul and Spiti",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Chamba",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Kangra",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Kullu",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Mandi",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Kinnaur",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Una",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Shimla",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Solan",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Sirmaur",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Hamirpur",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Bilaspur",
+"state": "Himachal Pradesh"
+},
+{
+"district": "Sahibganj",
+"state": "Jharkhand"
+},
+{
+"district": "Godda",
+"state": "Jharkhand"
+},
+{
+"district": "Pakur",
+"state": "Jharkhand"
+},
+{
+"district": "Giridih",
+"state": "Jharkhand"
+},
+{
+"district": "Dumka",
+"state": "Jharkhand"
+},
+{
+"district": "Deoghar",
+"state": "Jharkhand"
+},
+{
+"district": "Palamu",
+"state": "Jharkhand"
+},
+{
+"district": "Chatra",
+"state": "Jharkhand"
+},
+{
+"district": "Garhwa",
+"state": "Jharkhand"
+},
+{
+"district": "Jamtara",
+"state": "Jharkhand"
+},
+{
+"district": "Dhanbad",
+"state": "Jharkhand"
+},
+{
+"district": "Latehar",
+"state": "Jharkhand"
+},
+{
+"district": "Bokaro",
+"state": "Jharkhand"
+},
+{
+"district": "Ramgarh",
+"state": "Jharkhand"
+},
+{
+"district": "Ranchi",
+"state": "Jharkhand"
+},
+{
+"district": "Lohardaga",
+"state": "Jharkhand"
+},
+{
+"district": "Gumla",
+"state": "Jharkhand"
+},
+{
+"district": "Khunti",
+"state": "Jharkhand"
+},
+{
+"district": "Saraikela-Kharsawan",
+"state": "Jharkhand"
+},
+{
+"district": "East Singhbhum",
+"state": "Jharkhand"
+},
+{
+"district": "West Singhbhum",
+"state": "Jharkhand"
+},
+{
+"district": "Simdega",
+"state": "Jharkhand"
+},
+{
+"district": "Koderma",
+"state": "Jharkhand"
+},
+{
+"district": "Hazaribagh",
+"state": "Jharkhand"
+},
+{
+"district": "Burhanpur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Seoni",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Alirajpur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Chhindwara",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Harda",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Khargone",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Khandwa",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Balaghat",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Barwani",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Betul",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Morena",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Bhind",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Gwalior",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Sheopur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Shivpuri",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Tikamgarh",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Neemuch",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Rewa",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Satna",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Guna",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Ashoknagar",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Mandsaur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Singrauli",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Sidhi",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Sagar",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Damoh",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Shajapur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Vidisha",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Rajgarh",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Shahdol",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Katni",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Umaria",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Ratlam",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Bhopal",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Ujjain",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Raisen",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Sehore",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Jabalpur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Dewas",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Anuppur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Jhabua",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Dindori",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Narsinghpur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Dhar",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Indore",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Mandla",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Hoshangabad",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Agar Malwa",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Datia",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Chhatarpur",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Panna",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Niwari",
+"state": "Madhya Pradesh"
+},
+{
+"district": "Gurdaspur",
+"state": "Punjab"
+},
+{
+"district": "Hoshiarpur",
+"state": "Punjab"
+},
+{
+"district": "Amritsar",
+"state": "Punjab"
+},
+{
+"district": "Jalandhar",
+"state": "Punjab"
+},
+{
+"district": "Tarn Taran",
+"state": "Punjab"
+},
+{
+"district": "Rupnagar",
+"state": "Punjab"
+},
+{
+"district": "Shahid Bhagat Singh Nagar",
+"state": "Punjab"
+},
+{
+"district": "Fazilka",
+"state": "Punjab"
+},
+{
+"district": "Moga",
+"state": "Punjab"
+},
+{
+"district": "Ludhiana",
+"state": "Punjab"
+},
+{
+"district": "S.A.S. Nagar",
+"state": "Punjab"
+},
+{
+"district": "Faridkot",
+"state": "Punjab"
+},
+{
+"district": "Fatehgarh Sahib",
+"state": "Punjab"
+},
+{
+"district": "Sri Muktsar Sahib",
+"state": "Punjab"
+},
+{
+"district": "Sangrur",
+"state": "Punjab"
+},
+{
+"district": "Barnala",
+"state": "Punjab"
+},
+{
+"district": "Bathinda",
+"state": "Punjab"
+},
+{
+"district": "Patiala",
+"state": "Punjab"
+},
+{
+"district": "Mansa",
+"state": "Punjab"
+},
+{
+"district": "Ferozepur",
+"state": "Punjab"
+},
+{
+"district": "Pathankot",
+"state": "Punjab"
+},
+{
+"district": "Kapurthala",
+"state": "Punjab"
+},
+{
+"district": "Churu",
+"state": "Rajasthan"
+},
+{
+"district": "Jhunjhunu",
+"state": "Rajasthan"
+},
+{
+"district": "Jaisalmer",
+"state": "Rajasthan"
+},
+{
+"district": "Sikar",
+"state": "Rajasthan"
+},
+{
+"district": "Alwar",
+"state": "Rajasthan"
+},
+{
+"district": "Jaipur",
+"state": "Rajasthan"
+},
+{
+"district": "Jodhpur",
+"state": "Rajasthan"
+},
+{
+"district": "Bharatpur",
+"state": "Rajasthan"
+},
+{
+"district": "Nagaur",
+"state": "Rajasthan"
+},
+{
+"district": "Dausa",
+"state": "Rajasthan"
+},
+{
+"district": "Karauli",
+"state": "Rajasthan"
+},
+{
+"district": "Dholpur",
+"state": "Rajasthan"
+},
+{
+"district": "Barmer",
+"state": "Rajasthan"
+},
+{
+"district": "Sawai Madhopur",
+"state": "Rajasthan"
+},
+{
+"district": "Tonk",
+"state": "Rajasthan"
+},
+{
+"district": "Pali",
+"state": "Rajasthan"
+},
+{
+"district": "Bhilwara",
+"state": "Rajasthan"
+},
+{
+"district": "Jalore",
+"state": "Rajasthan"
+},
+{
+"district": "Bundi",
+"state": "Rajasthan"
+},
+{
+"district": "Kota",
+"state": "Rajasthan"
+},
+{
+"district": "Sirohi",
+"state": "Rajasthan"
+},
+{
+"district": "Baran",
+"state": "Rajasthan"
+},
+{
+"district": "Udaipur",
+"state": "Rajasthan"
+},
+{
+"district": "Jhalawar",
+"state": "Rajasthan"
+},
+{
+"district": "Dungarpur",
+"state": "Rajasthan"
+},
+{
+"district": "Banswara",
+"state": "Rajasthan"
+},
+{
+"district": "Ajmer",
+"state": "Rajasthan"
+},
+{
+"district": "Rajsamand",
+"state": "Rajasthan"
+},
+{
+"district": "Chittorgarh",
+"state": "Rajasthan"
+},
+{
+"district": "Ganganagar",
+"state": "Rajasthan"
+},
+{
+"district": "Hanumangarh",
+"state": "Rajasthan"
+},
+{
+"district": "Bikaner",
+"state": "Rajasthan"
+},
+{
+"district": "Pratapgarh",
+"state": "Rajasthan"
+},
+{
+"district": "Amroha",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Hapur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Bareilly",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Pilibhit",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Bulandshahr",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Gautam Buddha Nagar",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Lakhimpur Kheri",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Budaun",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Bahraich",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Shahjahanpur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Aligarh",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Kasganj",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Mathura",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Shrawasti",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Sitapur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Hathras",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Etah",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Hardoi",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Farrukhabad",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Firozabad",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Siddharthnagar",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Mainpuri",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Maharajganj",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Agra",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Gonda",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Barabanki",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Kushinagar",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Kannauj",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Lucknow",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Basti",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Gorakhpur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Sant Kabir Nagar",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Unnao",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Etawah",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Kanpur Nagar",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Auraiya",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Ayodhya",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Kanpur Dehat",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Deoria",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Sultanpur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Ambedkar Nagar",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Rae Bareli",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Jalaun",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Azamgarh",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Mau",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Fatehpur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Ballia",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Jaunpur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Jhansi",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Banda",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Ghazipur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Kaushambi",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Prayagraj",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Varanasi",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Chitrakoot",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Chandauli",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Bhadohi",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Mirzapur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Lalitpur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Sonbhadra",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Amethi",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Ghaziabad",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Sambhal",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Mahoba",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Saharanpur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Bijnor",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Muzaffarnagar",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Baghpat",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Meerut",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Moradabad",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Rampur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Shamli",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Balrampur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Hamirpur",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Pratapgarh",
+"state": "Uttar Pradesh"
+},
+{
+"district": "Uttarkashi",
+"state": "Uttarakhand"
+},
+{
+"district": "Chamoli",
+"state": "Uttarakhand"
+},
+{
+"district": "Dehradun",
+"state": "Uttarakhand"
+},
+{
+"district": "Tehri Garhwal",
+"state": "Uttarakhand"
+},
+{
+"district": "Rudraprayag",
+"state": "Uttarakhand"
+},
+{
+"district": "Pithoragarh",
+"state": "Uttarakhand"
+},
+{
+"district": "Bageshwar",
+"state": "Uttarakhand"
+},
+{
+"district": "Haridwar",
+"state": "Uttarakhand"
+},
+{
+"district": "Pauri Garhwal",
+"state": "Uttarakhand"
+},
+{
+"district": "Almora",
+"state": "Uttarakhand"
+},
+{
+"district": "Nainital",
+"state": "Uttarakhand"
+},
+{
+"district": "Champawat",
+"state": "Uttarakhand"
+},
+{
+"district": "Udham Singh Nagar",
+"state": "Uttarakhand"
+},
+{
+"district": "South 24 Parganas",
+"state": "West Bengal"
+},
+{
+"district": "Paschim Medinipur",
+"state": "West Bengal"
+},
+{
+"district": "Purba Medinipur",
+"state": "West Bengal"
+},
+{
+"district": "Jhargram",
+"state": "West Bengal"
+},
+{
+"district": "Darjeeling",
+"state": "West Bengal"
+},
+{
+"district": "Jalpaiguri",
+"state": "West Bengal"
+},
+{
+"district": "Dakshin Dinajpur",
+"state": "West Bengal"
+},
+{
+"district": "Malda",
+"state": "West Bengal"
+},
+{
+"district": "Murshidabad",
+"state": "West Bengal"
+},
+{
+"district": "Birbhum",
+"state": "West Bengal"
+},
+{
+"district": "Nadia",
+"state": "West Bengal"
+},
+{
+"district": "Purba Bardhaman",
+"state": "West Bengal"
+},
+{
+"district": "Purulia",
+"state": "West Bengal"
+},
+{
+"district": "Bankura",
+"state": "West Bengal"
+},
+{
+"district": "North 24 Parganas",
+"state": "West Bengal"
+},
+{
+"district": "Hooghly",
+"state": "West Bengal"
+},
+{
+"district": "Howrah",
+"state": "West Bengal"
+},
+{
+"district": "Kolkata",
+"state": "West Bengal"
+},
+{
+"district": "Alipurduar",
+"state": "West Bengal"
+},
+{
+"district": "Paschim Bardhaman",
+"state": "West Bengal"
+},
+{
+"district": "Kalimpong",
+"state": "West Bengal"
+},
+{
+"district": "Cooch Behar",
+"state": "West Bengal"
+},
+{
+"district": "Uttar Dinajpur",
+"state": "West Bengal"
+}
+]
