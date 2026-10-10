@@ -24,6 +24,10 @@ Parameters:
     Default: ""
     NoEcho: true
     Description: World Air Quality Index token (aqicn.org/data-platform/token) for observed station readings; empty disables them
+  AlertEmail:
+    Type: String
+    Default: ""
+    Description: Operator email for CloudWatch alarms (workflow failed or stopped) and the monthly budget alert; empty disables both
   GitHubRepo:
     Type: String
     Default: ""
@@ -34,6 +38,7 @@ Parameters:
     Description: ARN of an existing token.actions.githubusercontent.com OIDC provider (an account has at most one); empty creates it.
 
 Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
   HasGitHubRepo: !Not [!Equals [!Ref GitHubRepo, ""]]
   CreateOidcProvider: !And
     - !Condition HasGitHubRepo
@@ -196,6 +201,9 @@ Resources:
         AllowMethods: [GET, POST, OPTIONS]
         AllowHeaders: [content-type]
         MaxAge: 600
+      DefaultRouteSettings: # a public API with an endpoint that creates SNS topics needs a ceiling
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 25
 
   ApiFunction:
     Type: AWS::Serverless::Function
@@ -244,6 +252,12 @@ Resources:
             - Effect: Allow
               Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
               Resource: "*"
+            - Effect: Allow
+              Action: cloudwatch:PutMetricData
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  cloudwatch:namespace: Dhuan
 
   ForecastStateMachine:
     Type: AWS::Serverless::StateMachine
@@ -288,6 +302,100 @@ Resources:
             OutputPath: $.Payload
             End: true
 
+  # ---------------------------------------------------------------- operations: alarms, dashboard, budget
+  OperatorTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasAlertEmail
+    Properties:
+      TopicName: !Sub ${AWS::StackName}-operator
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref AlertEmail
+
+  WorkflowFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlertEmail
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-forecast-run-failed
+      AlarmDescription: An hourly forecast run failed (fires or winds unavailable, or the simulation crashed)
+      Namespace: AWS/States
+      MetricName: ExecutionsFailed
+      Dimensions:
+        - Name: StateMachineArn
+          Value: !Ref ForecastStateMachine
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref OperatorTopic]
+
+  WorkflowStalledAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlertEmail
+    Properties:
+      AlarmName: !Sub ${AWS::StackName}-forecast-stalled
+      AlarmDescription: No forecast run has succeeded for two hours; the map is going stale
+      Namespace: AWS/States
+      MetricName: ExecutionsSucceeded
+      Dimensions:
+        - Name: StateMachineArn
+          Value: !Ref ForecastStateMachine
+      Statistic: Sum
+      Period: 7200
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref OperatorTopic]
+      OKActions: [!Ref OperatorTopic]
+
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub ${AWS::StackName}-forecast
+      DashboardBody: !Sub
+        - |
+          {"widgets": [
+            {"type": "metric", "x": 0, "y": 0, "width": 8, "height": 6, "properties": {"title": "Fires detected (last 48 h)", "region": "${AWS::Region}", "view": "timeSeries", "stat": "Maximum", "period": 3600,
+              "metrics": [["Dhuan", "FiresDetected"]]}},
+            {"type": "metric", "x": 8, "y": 0, "width": 8, "height": 6, "properties": {"title": "Indian districts under smoke, next 24 h", "region": "${AWS::Region}", "view": "timeSeries", "stat": "Maximum", "period": 3600,
+              "metrics": [["Dhuan", "DistrictsHeavy24h", {"label": "heavy (>= 50 ug/m3)", "color": "#e05a3a"}], ["Dhuan", "DistrictsModerate24h", {"label": "moderate (>= 25)", "color": "#f3a35a"}]]}},
+            {"type": "metric", "x": 16, "y": 0, "width": 8, "height": 6, "properties": {"title": "Hourly workflow", "region": "${AWS::Region}", "view": "timeSeries", "stat": "Sum", "period": 3600,
+              "metrics": [["AWS/States", "ExecutionsSucceeded", "StateMachineArn", "${StateMachine}", {"color": "#2ca02c"}], ["AWS/States", "ExecutionsFailed", "StateMachineArn", "${StateMachine}", {"color": "#d62728"}]]}},
+            {"type": "metric", "x": 0, "y": 6, "width": 8, "height": 6, "properties": {"title": "Simulation time (s)", "region": "${AWS::Region}", "view": "timeSeries", "stat": "Maximum", "period": 3600,
+              "metrics": [["Dhuan", "SimulateSeconds"], ["AWS/Lambda", "Duration", "FunctionName", "${Pipeline}", {"stat": "Maximum", "label": "Lambda duration (ms)", "yAxis": "right"}]]}},
+            {"type": "metric", "x": 8, "y": 6, "width": 8, "height": 6, "properties": {"title": "API requests and errors", "region": "${AWS::Region}", "view": "timeSeries", "stat": "Sum", "period": 3600,
+              "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${Api}"], ["AWS/ApiGateway", "5xx", "ApiId", "${Api}", {"color": "#d62728"}]]}},
+            {"type": "metric", "x": 16, "y": 6, "width": 8, "height": 6, "properties": {"title": "Stations observed and peak smoke now (ug/m3)", "region": "${AWS::Region}", "view": "timeSeries", "stat": "Maximum", "period": 3600,
+              "metrics": [["Dhuan", "StationsObserved"], ["Dhuan", "MaxUgNow", {"yAxis": "right"}]]}}
+          ]}
+        - StateMachine: !Ref ForecastStateMachine
+          Pipeline: !Ref PipelineFunction
+          Api: !Ref HttpApi
+
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasAlertEmail
+    Properties:
+      Budget:
+        BudgetName: !Sub ${AWS::StackName}-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 5
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+
   # ---------------------------------------------------------------- CI/CD (GitHub Actions -> this stack)
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
@@ -328,7 +436,17 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: [cloudformation:*, apigateway:*, states:*, dynamodb:*, lambda:*, amplify:*, logs:*, xray:*, events:*,
-                         cloudfront:*, tag:GetResources]
+                         cloudfront:*, cloudwatch:*, budgets:*, tag:GetResources]
+                Resource: "*"
+              - Effect: Allow
+                Action: [sns:CreateTopic, sns:DeleteTopic, sns:GetTopicAttributes, sns:SetTopicAttributes, sns:Subscribe, sns:Unsubscribe,
+                         sns:ListSubscriptionsByTopic, sns:TagResource, sns:UntagResource]
+                Resource: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:dhuan-*
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource: !Ref ForecastStateMachine
+              - Effect: Allow
+                Action: [states:DescribeExecution]
                 Resource: "*"
               - Effect: Allow
                 Action: s3:*

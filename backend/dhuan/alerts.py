@@ -18,6 +18,7 @@ from .storage import storage
 
 log = logging.getLogger(__name__)
 ALERT_FROM = "moderate"  # tell people when at least this band is coming
+MAX_SUBSCRIBERS = 500  # each subscriber is an SNS topic; an open endpoint must not be able to create them without limit
 ALERT_WINDOW_FRAMES = 36  # hours ahead worth warning about
 RENOTIFY_HOURS = 18
 BAND_ORDER = ["clear", "light", "moderate", "heavy", "severe"]
@@ -130,6 +131,10 @@ def repo():
 SAME_PLACE_DEG = 0.15  # about 15 km: the same person tapping "Delhi" twice lands 9 km apart and means the same subscription
 
 
+class SubscriptionsFull(Exception):
+    """The demo deployment's subscriber cap has been reached."""
+
+
 def _same_place(subs: list[dict], lat: float, lon: float) -> list[dict]:
     return [s for s in subs if abs(s["lat"] - lat) < SAME_PLACE_DEG and abs(s["lon"] - lon) < SAME_PLACE_DEG]
 
@@ -148,6 +153,8 @@ def subscribe(email: str, lat: float, lon: float, label: str, language: str) -> 
         r.resend_confirmation(existing)
         return {"id": existing["id"], "status": "pending_confirmation",
                 "note": "You subscribed for this place before but never confirmed. We have sent the confirmation email again."}
+    if len(r.all()) >= MAX_SUBSCRIBERS:
+        raise SubscriptionsFull()
     sub = {"id": uuid.uuid4().hex[:10], "email": email, "lat": lat, "lon": lon, "label": label.strip()[:80], "language": language,
            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "last_alert_at": None, "last_alert_band": None}
     if isinstance(r, AwsSubscribers):

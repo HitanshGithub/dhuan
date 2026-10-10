@@ -26,6 +26,11 @@ export interface RunMeta {
   sources: Record<string, string | null>
   has_stations?: boolean
   replay?: { date: string; title: string } | null
+  exposure?: {
+    frames: { heavy: number; moderate: number }[]
+    next_24h: { frame: number; heavy: number; moderate: number; districts: { name: string; ug: number }[] }
+    thresholds: { moderate: number; heavy: number }
+  }
 }
 
 export interface Replay {

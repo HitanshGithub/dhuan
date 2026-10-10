@@ -23,17 +23,27 @@ export default function Timeline({ meta, frame, playing, onFrame, onPlay }: Prop
   })
   const pct = (i: number) => `${(i / (n - 1)) * 100}%`
   const assumed = isFuture && frame - meta.now_frame > 12 && meta.fires.assumed_repeat > 0
+  const ex = meta.exposure?.frames[frame]
+  const exposureText = !ex || (ex.heavy === 0 && ex.moderate === 0)
+    ? null
+    : ex.heavy > 0
+      ? `Heavy smoke over ${ex.heavy} district${ex.heavy === 1 ? '' : 's'}${ex.moderate > ex.heavy ? `, moderate over ${ex.moderate}` : ''}`
+      : `Moderate smoke over ${ex.moderate} district${ex.moderate === 1 ? '' : 's'}`
 
   return (
     <div className="glass rounded-2xl px-4 pt-3 pb-3 shadow-2xl">
       <div className="flex items-center gap-3">
-        <button
-          onClick={() => onPlay(!playing)}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ember text-ink transition hover:brightness-110 active:scale-95"
-          aria-label={playing ? 'Pause' : 'Play the next 48 hours'}
-        >
-          {playing ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
-        </button>
+        <div className="flex shrink-0 flex-col items-center">
+          <button
+            onClick={() => onPlay(!playing)}
+            className="grid h-10 w-10 place-items-center rounded-full bg-ember text-ink transition hover:brightness-110 active:scale-95"
+            aria-label={playing ? 'Pause' : 'Play the next 48 hours'}
+            title={playing ? 'Pause' : 'Play the next 48 hours'}
+          >
+            {playing ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+          </button>
+          <span className="mt-1 text-[10px] text-mist/60">{playing ? 'pause' : 'play 48 h'}</span>
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <div className="truncate font-display text-base font-semibold sm:text-lg">
@@ -50,6 +60,12 @@ export default function Timeline({ meta, frame, playing, onFrame, onPlay }: Prop
               )}
             </div>
           </div>
+          {exposureText && (
+            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-mist">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: ex!.heavy > 0 ? '#e05a3a' : '#f3a35a' }} />
+              {exposureText}
+            </div>
+          )}
           <div className="relative mt-5">
             <span className="pointer-events-none absolute -top-4 -translate-x-1/2 text-[10px] font-semibold text-ember" style={{ left: pct(meta.now_frame) }}>
               now

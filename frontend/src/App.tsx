@@ -7,7 +7,7 @@ import PlacePanel from './components/PlacePanel'
 import Search from './components/Search'
 import SmokeMap from './components/SmokeMap'
 import Timeline from './components/Timeline'
-import { formatCount, istDay, istTime } from './format'
+import { formatCount, istDay, istTime, relativeDay } from './format'
 
 const REPO = 'https://github.com/HitanshGithub/dhuan'
 
@@ -133,6 +133,11 @@ export default function App() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-ink">
       <SmokeMap meta={meta} frame={frame} place={place} onPick={pick} showStations={showStations} onFail={setMapError} onReady={() => setMapReady(true)} />
+      {!mapReady && !mapError && (
+        <div className="glass pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full px-4 py-2 text-sm text-mist">
+          Loading the map…
+        </div>
+      )}
       {mapError && (
         <div className="absolute left-1/2 top-1/2 z-10 w-[min(440px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2">
           <div className="glass rounded-2xl p-4 text-sm leading-relaxed text-mist shadow-2xl">
@@ -183,6 +188,7 @@ export default function App() {
                 Replay · {istDay(meta.times[meta.now_frame])} · {formatCount(meta.fires.count)} fires in 48 h · archived fires and winds, same model
               </div>
             )}
+            {meta?.exposure && <Outlook meta={meta} onFrame={setFrame} />}
             {metaError && <div className="mt-2 rounded-lg bg-red-500/10 px-2 py-1 text-xs text-red-200">No forecast yet: {metaError}</div>}
             {replays.length > 0 && liveMeta && (
               <div className="mt-2 flex rounded-full bg-white/5 p-0.5 text-xs ring-1 ring-line">
@@ -244,5 +250,31 @@ export default function App() {
 
       {about && <About meta={meta} onClose={() => setAbout(false)} />}
     </div>
+  )
+}
+
+/** The next 24 hours in one line: how many Indian districts sit under moderate or heavy farm-fire smoke, and when. */
+function Outlook({ meta, onFrame }: { meta: RunMeta; onFrame: (f: number) => void }) {
+  const ex = meta.exposure!
+  const peak = ex.next_24h
+  const nowIso = meta.times[meta.now_frame]
+  const when = `${relativeDay(meta.times[peak.frame], nowIso).toLowerCase()} ${istTime(meta.times[peak.frame])}`
+  if (peak.heavy === 0 && peak.moderate === 0) {
+    return <div className="mt-2 text-xs text-mist/70">Next 24 h: no district expected to see moderate or heavy farm-fire smoke.</div>
+  }
+  const worst = peak.districts
+    .slice(0, 3)
+    .map((d) => d.name.split(',')[0])
+    .join(', ')
+  return (
+    <button onClick={() => onFrame(peak.frame)} className="mt-2 flex w-full items-start gap-2 rounded-lg bg-white/5 px-2 py-1.5 text-left text-xs text-mist ring-1 ring-line hover:bg-white/10" title="Jump to that hour">
+      <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: peak.heavy > 0 ? '#e05a3a' : '#f3a35a' }} />
+      <span>
+        <span className="font-semibold text-white">
+          {peak.heavy > 0 ? `Heavy smoke over ${peak.heavy} districts` : `Moderate smoke over ${peak.moderate} districts`}
+        </span>{' '}
+        around {when}{peak.heavy > 0 && peak.moderate > peak.heavy ? `, moderate over ${peak.moderate}` : ''}. Worst: {worst}.
+      </span>
+    </button>
   )
 }

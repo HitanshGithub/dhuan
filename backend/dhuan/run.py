@@ -106,6 +106,7 @@ def step_simulate(run_id: str, store=None, now: datetime | None = None, set_late
     for f in fires:
         state = districts.names[f.district]["state"] if f.district >= 0 else "Outside India"
         by_state[state] = by_state.get(state, 0) + 1
+    exposed = exposure(ug, districts, sim.now_frame)
     meta = {
         "run_id": run_id,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -117,6 +118,7 @@ def step_simulate(run_id: str, store=None, now: datetime | None = None, set_late
                   "window": settings.firms_window},
         "parcels": sim.n_parcels,
         "frame_max_ug": [round(float(ug[i].max()), 1) for i in range(len(sim.times))],
+        "exposure": exposed,
         "bands": bands(),
         "ug_per_unit": UG_PER_UNIT,
         "seconds": round(time.time() - t0, 1),
@@ -133,7 +135,61 @@ def step_simulate(run_id: str, store=None, now: datetime | None = None, set_late
     if set_latest:
         put_json(store, "latest.json", {"run_id": run_id, "generated_at": meta["generated_at"], "fires": len(fires), "times": meta["times"],
                                         "now_frame": sim.now_frame, "frame_max_ug": meta["frame_max_ug"]})
-    return {"run_id": run_id, "fires": len(fires), "parcels": sim.n_parcels, "frames": len(sim.times), "seconds": meta["seconds"]}
+        publish_metrics(meta, len(districts.names))
+    return {"run_id": run_id, "fires": len(fires), "parcels": sim.n_parcels, "frames": len(sim.times), "seconds": meta["seconds"],
+            "heavy_districts_24h": exposed["next_24h"]["heavy"]}
+
+
+def exposure(ug: np.ndarray, districts: geo.Districts, now_frame: int) -> dict:
+    """How many Indian districts sit under moderate (>= 25 ug/m3) or heavy (>= 50) smoke, frame by frame.
+
+    The district raster covers India only, so Pakistan's Punjab is not counted. 'Under smoke' means the district's
+    mean estimated farm-fire PM2.5 crosses the band, which understates small hot spots and is deliberately conservative.
+    """
+    from .calibrate import BANDS
+
+    moderate_from = next(b[0] for b in BANDS if b[1] == "moderate")
+    heavy_from = next(b[0] for b in BANDS if b[1] == "heavy")
+    mask = districts.grid >= 0
+    ids = districts.grid[mask].astype(np.int64)
+    n = len(districts.names)
+    counts = np.maximum(np.bincount(ids, minlength=n), 1)
+    means = np.stack([np.bincount(ids, weights=ug[f][mask].astype(np.float64), minlength=n) / counts for f in range(ug.shape[0])])
+    heavy = (means >= heavy_from).sum(axis=1)
+    moderate = (means >= moderate_from).sum(axis=1)
+    ahead = slice(now_frame, min(now_frame + 25, ug.shape[0]))
+    score = heavy[ahead] * 1000 + moderate[ahead]
+    peak = now_frame + int(np.argmax(score))
+    worst = [int(i) for i in np.argsort(-means[peak]) if means[peak][i] >= moderate_from][:8]
+    return {
+        "frames": [{"heavy": int(h), "moderate": int(m)} for h, m in zip(heavy, moderate)],
+        "next_24h": {"frame": peak, "heavy": int(heavy[peak]), "moderate": int(moderate[peak]),
+                     "districts": [{"name": districts.label(i), "ug": round(float(means[peak][i]), 1)} for i in worst]},
+        "thresholds": {"moderate": moderate_from, "heavy": heavy_from},
+    }
+
+
+def publish_metrics(meta: dict, n_districts: int) -> None:
+    """Operational metrics for the CloudWatch dashboard and alarms; only when deployed, and never fatal."""
+    if settings.storage != "s3":
+        return
+    try:
+        import boto3
+
+        now_i = meta["now_frame"]
+        data = [
+            ("FiresDetected", meta["fires"]["count"], "Count"),
+            ("Parcels", meta["parcels"], "Count"),
+            ("SimulateSeconds", meta["seconds"], "Seconds"),
+            ("MaxUgNow", meta["frame_max_ug"][now_i], "None"),
+            ("DistrictsHeavy24h", meta["exposure"]["next_24h"]["heavy"], "Count"),
+            ("DistrictsModerate24h", meta["exposure"]["next_24h"]["moderate"], "Count"),
+            ("StationsObserved", int(meta.get("has_stations", False)) and len(get_json(storage(), f"runs/{meta['run_id']}/stations.geojson").get("features", [])), "Count"),
+        ]
+        boto3.client("cloudwatch", region_name=settings.region).put_metric_data(
+            Namespace="Dhuan", MetricData=[{"MetricName": name, "Value": float(value), "Unit": unit} for name, value, unit in data])
+    except Exception:
+        log.exception("could not publish metrics")
 
 
 def main(argv: list[str]) -> None:

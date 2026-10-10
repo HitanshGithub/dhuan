@@ -78,7 +78,10 @@ class Subscription(BaseModel):
 def subscribe(sub: Subscription):
     from . import alerts
 
-    return alerts.subscribe(sub.email, sub.lat, sub.lon, sub.label, sub.language)
+    try:
+        return alerts.subscribe(sub.email, sub.lat, sub.lon, sub.label, sub.language)
+    except alerts.SubscriptionsFull:
+        raise HTTPException(429, "This demo deployment has reached its subscriber limit. Please try again later.")
 
 
 @app.post("/api/subscribe/{sub_id}/preview")
