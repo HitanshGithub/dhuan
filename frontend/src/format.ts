@@ -18,8 +18,17 @@ export const BAND_LABEL: Record<Band, string> = {
 
 const IST = 'Asia/Kolkata'
 
+/** '3:30 pm' (forecast hours fall on UTC whole hours, which are half past the hour in IST) or '6 am' when exact. */
 export function istTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', hour12: true, timeZone: IST }).replace(' ', ' ').toLowerCase()
+  const d = new Date(iso)
+  const minutes = Number(d.toLocaleTimeString('en-IN', { minute: '2-digit', timeZone: IST }))
+  const opts: Intl.DateTimeFormatOptions = minutes ? { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: IST } : { hour: 'numeric', hour12: true, timeZone: IST }
+  return d.toLocaleTimeString('en-IN', opts).replace(/\s+/g, ' ').toLowerCase()
+}
+
+/** True when `iso` falls on a different IST calendar day than `prevIso`. */
+export function newIstDay(iso: string, prevIso: string): boolean {
+  return istDay(iso) !== istDay(prevIso)
 }
 
 export function istDay(iso: string): string {

@@ -1,7 +1,7 @@
 import { Bell, Check, Link2, Loader2, Mail, Send, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api, type Advisory, type Place, type PointForecast } from '../api'
-import { BAND_COLOR, istTime, relativeDay } from '../format'
+import { BAND_COLOR, istTime, newIstDay, relativeDay } from '../format'
 
 interface Props {
   place: Place
@@ -190,7 +190,7 @@ function Chart({ fc, frame, onFrame }: { fc: PointForecast; frame: number; onFra
   const frames = fc.frames.slice(nowI)
   const max = Math.max(25, ...frames.map((f) => f.ug))
   const nowIso = fc.now.time
-  const dayMarks = frames.map((f, i) => (istTime(f.time).startsWith('12 am') ? i : -1)).filter((i) => i >= 0)
+  const dayMarks = frames.map((f, i) => (i > 0 && newIstDay(f.time, frames[i - 1].time) ? i : -1)).filter((i) => i >= 0)
   return (
     <section className="mt-5">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-mist/70">Next 48 hours</h3>

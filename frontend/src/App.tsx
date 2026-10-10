@@ -24,6 +24,7 @@ export default function App() {
   const [fcError, setFcError] = useState<string | null>(null)
   const [about, setAbout] = useState(false)
   const [showStations, setShowStations] = useState(true)
+  const [mapError, setMapError] = useState<string | null>(null)
 
   const isReplay = !!meta?.replay
   const runParam = isReplay ? meta?.run_id : undefined
@@ -128,7 +129,23 @@ export default function App() {
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-ink">
-      <SmokeMap meta={meta} frame={frame} place={place} onPick={pick} showStations={showStations} />
+      <SmokeMap meta={meta} frame={frame} place={place} onPick={pick} showStations={showStations} onFail={setMapError} />
+      {mapError && (
+        <div className="absolute left-1/2 top-1/2 z-10 w-[min(440px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2">
+          <div className="glass rounded-2xl p-4 text-sm leading-relaxed text-mist shadow-2xl">
+            <div className="mb-1 font-display font-semibold text-white">The map could not be drawn</div>
+            {mapError}
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => window.location.reload()} className="rounded-lg bg-ember px-3 py-1.5 text-xs font-semibold text-ink">
+                Reload
+              </button>
+              <button onClick={() => setMapError(null)} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs">
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* header */}
       <div className="absolute left-3 top-3 z-10 w-[min(400px,calc(100%-24px))] md:left-4 md:top-4">

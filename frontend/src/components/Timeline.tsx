@@ -1,6 +1,6 @@
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import type { RunMeta } from '../api'
-import { istTime, relativeDay } from '../format'
+import { istTime, newIstDay, relativeDay } from '../format'
 
 interface Props {
   meta: RunMeta
@@ -19,7 +19,7 @@ export default function Timeline({ meta, frame, playing, onFrame, onPlay }: Prop
   // ticks at each midnight IST and at "now"
   const ticks: { at: number; label: string }[] = []
   meta.times.forEach((t, i) => {
-    if (istTime(t).startsWith('12 am')) ticks.push({ at: i, label: relativeDay(t, nowIso) })
+    if (i > 0 && newIstDay(t, meta.times[i - 1])) ticks.push({ at: i, label: relativeDay(t, nowIso) })
   })
   const pct = (i: number) => `${(i / (n - 1)) * 100}%`
   const assumed = isFuture && frame - meta.now_frame > 12 && meta.fires.assumed_repeat > 0

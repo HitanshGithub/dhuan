@@ -57,8 +57,11 @@ def latest_run(store=None) -> Run | None:
 
 
 def _ist(t: datetime) -> str:
-    """'Saturday 10 Oct, 6 AM': full weekday names, because the advisory model mistranslated abbreviations."""
-    return t.astimezone(IST).strftime("%A %d %b, %I %p").replace(" 0", " ").lstrip("0")
+    """'Saturday 10 Oct, 6:30 AM'. Forecast hours are whole UTC hours, which are half past the hour in IST, so the
+    minutes matter; full weekday names because the advisory model mistranslated abbreviations."""
+    local = t.astimezone(IST)
+    clock = local.strftime("%I:%M %p").lstrip("0") if local.minute else local.strftime("%I %p").lstrip("0")
+    return f"{local:%A} {local.day} {local:%b}, {clock}"
 
 
 def nearest_station(run: Run, lat: float, lon: float) -> dict | None:

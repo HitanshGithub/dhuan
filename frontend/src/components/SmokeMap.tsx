@@ -14,9 +14,10 @@ interface Props {
   place: Place | null
   onPick: (lat: number, lon: number) => void
   showStations: boolean
+  onFail?: (message: string) => void
 }
 
-export default function SmokeMap({ meta, frame, place, onPick, showStations }: Props) {
+export default function SmokeMap({ meta, frame, place, onPick, showStations, onFail }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<MLMap | null>(null)
   const marker = useRef<maplibregl.Marker | null>(null)
@@ -42,15 +43,27 @@ export default function SmokeMap({ meta, frame, place, onPick, showStations }: P
   // the map itself, once
   useEffect(() => {
     if (!container.current || map.current) return
-    const m = new maplibregl.Map({
-      container: container.current,
-      style: STYLE,
-      center: [77.2, 28.3],
-      zoom: 5.3,
-      minZoom: 4,
-      maxZoom: 11,
-      attributionControl: false,
+    let m: MLMap
+    try {
+      m = new maplibregl.Map({
+        container: container.current,
+        style: STYLE,
+        center: [77.2, 28.3],
+        zoom: 5.3,
+        minZoom: 4,
+        maxZoom: 11,
+        attributionControl: false,
+      })
+    } catch (e) {
+      // almost always WebGL being unavailable: graphics acceleration off, a blocklisted GPU, or a remote desktop
+      onFail?.(`The map needs WebGL, which this browser could not start (${(e as Error).message}). In Chrome, open chrome://settings/system and turn on "Use graphics acceleration when available", then relaunch; or try another browser.`)
+      return
+    }
+    m.on('error', (e) => {
+      const msg = e.error?.message ?? ''
+      if (/webgl|context/i.test(msg)) onFail?.(`The map's graphics context failed: ${msg}`)
     })
+    m.getCanvas().addEventListener('webglcontextlost', () => onFail?.('The browser lost the map’s graphics context (this happens when the GPU is overloaded or the tab was suspended). Reload the page to restore the map.'))
     m.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'Fires: NASA FIRMS · Winds: Open-Meteo · Map: OpenFreeMap, OpenStreetMap' }), 'bottom-right')
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left')
     m.on('click', (e: MapMouseEvent) => pick.current(e.lngLat.lat, e.lngLat.lng))
@@ -59,13 +72,33 @@ export default function SmokeMap({ meta, frame, place, onPick, showStations }: P
       m.getCanvas().style.cursor = 'crosshair'
       setMapObj(m)
     })
+    // browsers pause animation frames for hidden or occluded windows, and the first frame may never come:
+    // nudge the renderer when the page becomes visible, and say something if it still has not drawn
+    const nudge = () => {
+      if (!ready.current && document.visibilityState === 'visible') {
+        m.resize()
+        m.triggerRepaint()
+      }
+    }
+    document.addEventListener('visibilitychange', nudge)
+    const watchdog = window.setTimeout(() => {
+      nudge()
+      window.setTimeout(() => {
+        if (!ready.current && document.visibilityState === 'visible') {
+          onFail?.('The map has not drawn yet. If it stays black, your browser may have graphics acceleration turned off: in Chrome open chrome://settings/system, turn on "Use graphics acceleration when available", relaunch, and reload this page.')
+        }
+      }, 8000)
+    }, 8000)
     map.current = m
     return () => {
+      document.removeEventListener('visibilitychange', nudge)
+      window.clearTimeout(watchdog)
       m.remove()
       map.current = null
       ready.current = false
       setMapObj(null)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // smoke overlay + fires, whenever a run is loaded
