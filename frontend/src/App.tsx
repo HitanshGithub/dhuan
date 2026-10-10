@@ -25,6 +25,7 @@ export default function App() {
   const [about, setAbout] = useState(false)
   const [showStations, setShowStations] = useState(true)
   const [mapError, setMapError] = useState<string | null>(null)
+  const [mapReady, setMapReady] = useState(false)
 
   const isReplay = !!meta?.replay
   const runParam = isReplay ? meta?.run_id : undefined
@@ -43,7 +44,7 @@ export default function App() {
     window.history.replaceState(null, '', url)
   }, [place])
 
-  // warm the browser cache with a run's frames, nearest hours first
+  // warm the browser cache with a run's frames, nearest hours first, one at a time so the map's own tiles are not starved
   const preload = useCallback((m: RunMeta) => {
     const order = [...m.times.keys()].sort((a, b) => Math.abs(a - m.now_frame) - Math.abs(b - m.now_frame))
     let i = 0
@@ -58,7 +59,6 @@ export default function App() {
       img.src = frameImage(m, order[i])
     }
     next()
-    next()
   }, [])
 
   // the latest run, and the list of replays
@@ -69,11 +69,15 @@ export default function App() {
         setLiveMeta(m)
         setMeta(m)
         setFrame(m.now_frame)
-        preload(m)
       })
       .catch((e: Error) => setMetaError(e.message))
     api.replays().then(setReplays)
-  }, [preload])
+  }, [])
+
+  // preload only once the basemap has started drawing
+  useEffect(() => {
+    if (meta && mapReady) preload(meta)
+  }, [meta, mapReady, preload])
 
   const selectRun = async (runId: 'live' | string) => {
     if (!liveMeta) return
@@ -87,7 +91,6 @@ export default function App() {
       const m = await api.runMeta(dataRoot(liveMeta), runId)
       setMeta(m)
       setFrame(m.now_frame)
-      preload(m)
     } catch (e) {
       setMetaError((e as Error).message)
     }
@@ -129,7 +132,7 @@ export default function App() {
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-ink">
-      <SmokeMap meta={meta} frame={frame} place={place} onPick={pick} showStations={showStations} onFail={setMapError} />
+      <SmokeMap meta={meta} frame={frame} place={place} onPick={pick} showStations={showStations} onFail={setMapError} onReady={() => setMapReady(true)} />
       {mapError && (
         <div className="absolute left-1/2 top-1/2 z-10 w-[min(440px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2">
           <div className="glass rounded-2xl p-4 text-sm leading-relaxed text-mist shadow-2xl">

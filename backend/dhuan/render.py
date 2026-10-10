@@ -32,13 +32,19 @@ def colorize(ug: np.ndarray) -> np.ndarray:
     return out
 
 
-def to_png(ug: np.ndarray, upscale: int = UPSCALE, blur: float = 1.2) -> bytes:
-    """`ug` has row 0 at the southern edge; the image has north at the top."""
+def to_png(ug: np.ndarray, upscale: int = UPSCALE, blur: float = 1.2, colors: int = 96) -> bytes:
+    """`ug` has row 0 at the southern edge; the image has north at the top.
+
+    The frame is quantised to a small palette (with alpha) before saving: 61 frames are preloaded by every visitor,
+    and a palette PNG is 4-6x smaller than true colour with no visible difference on a dark map.
+    """
     img = Image.fromarray(colorize(ug[::-1]), mode="RGBA")
     if upscale > 1:
         img = img.resize((img.width * upscale, img.height * upscale), Image.Resampling.BICUBIC)
     if blur:
         img = img.filter(ImageFilter.GaussianBlur(blur))
+    if colors:
+        img = img.quantize(colors=colors, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)
     return buf.getvalue()

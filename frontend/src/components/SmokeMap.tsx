@@ -4,7 +4,10 @@ import type { ImageSource, Map as MLMap, MapMouseEvent } from 'maplibre-gl'
 import { dataUrl, frameImage, type Place, type RunMeta } from '../api'
 import WindCanvas, { type WindData } from './WindCanvas'
 
-const STYLE = 'https://tiles.openfreemap.org/styles/dark'
+// OpenFreeMap's dark style, served from this site with its Natural Earth relief raster removed: that source's tiles
+// started returning 404 on 10 Oct 2026 and MapLibre never finished loading while it failed. Tiles, glyphs and sprites
+// still come from OpenFreeMap.
+const STYLE = `${import.meta.env.BASE_URL}styles/dark.json`
 // MapLibre 6 looks for its worker next to its own module URL, which Vite rewrites; serve it from /public instead
 maplibregl.setWorkerUrl(`${import.meta.env.BASE_URL}maplibre/maplibre-gl-worker.mjs`)
 
@@ -15,9 +18,10 @@ interface Props {
   onPick: (lat: number, lon: number) => void
   showStations: boolean
   onFail?: (message: string) => void
+  onReady?: () => void
 }
 
-export default function SmokeMap({ meta, frame, place, onPick, showStations, onFail }: Props) {
+export default function SmokeMap({ meta, frame, place, onPick, showStations, onFail, onReady }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<MLMap | null>(null)
   const marker = useRef<maplibregl.Marker | null>(null)
@@ -67,10 +71,13 @@ export default function SmokeMap({ meta, frame, place, onPick, showStations, onF
     m.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'Fires: NASA FIRMS · Winds: Open-Meteo · Map: OpenFreeMap, OpenStreetMap' }), 'bottom-right')
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-left')
     m.on('click', (e: MapMouseEvent) => pick.current(e.lngLat.lat, e.lngLat.lng))
-    m.on('load', () => {
+    // 'style.load' fires as soon as the style JSON is parsed; 'load' would also wait for every basemap tile, and a
+    // slow tile server must not keep the smoke and the fires off the screen
+    m.once('style.load', () => {
       ready.current = true
       m.getCanvas().style.cursor = 'crosshair'
       setMapObj(m)
+      onReady?.()
     })
     // browsers pause animation frames for hidden or occluded windows, and the first frame may never come:
     // nudge the renderer when the page becomes visible, and say something if it still has not drawn
@@ -85,7 +92,7 @@ export default function SmokeMap({ meta, frame, place, onPick, showStations, onF
       nudge()
       window.setTimeout(() => {
         if (!ready.current && document.visibilityState === 'visible') {
-          onFail?.('The map has not drawn yet. If it stays black, your browser may have graphics acceleration turned off: in Chrome open chrome://settings/system, turn on "Use graphics acceleration when available", relaunch, and reload this page.')
+          onFail?.('The map is taking long to draw. On a slow connection give it a moment; if it stays black, your browser may have graphics acceleration turned off: in Chrome open chrome://settings/system, turn on "Use graphics acceleration when available", relaunch, and reload this page.')
         }
       }, 8000)
     }, 8000)
@@ -205,7 +212,7 @@ export default function SmokeMap({ meta, frame, place, onPick, showStations, onF
       m.setLayoutProperty('stations', 'visibility', showStations ? 'visible' : 'none')
     }
     if (ready.current) install()
-    else m.once('load', install)
+    else m.once('style.load', install)
     // frame and the stations toggle are handled by the next effects; this one only runs when the run changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meta])
