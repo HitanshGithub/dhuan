@@ -22,9 +22,20 @@ Every October and November, rice stubble is burnt across Punjab, Haryana and wes
 
 Dhuan pulls NASA's satellite fire detections (VIIRS, three satellites, 375 m) and the hourly wind forecast every hour, then simulates where the smoke from each fire travels over the next 48 hours with a Lagrangian parcel model: parcels released over a field's burning hours, carried by the 100 m wind, spread by turbulence, binned onto a 5 km grid and divided by the depth of the mixed layer (which is why the worst hours are late night and early morning). The map plays the next two days as an animation with the wind streaks that carry it. Tap any place and you get the hour the smoke arrives, the hour it peaks, how heavy it will be, and the top source districts. Subscribe and you get an email a day ahead, written in your language by Ministral 3 on Amazon Bedrock from a template that is always right about the numbers. Tomorrow's fires are unknown, so fields seen burning in the last 24 hours are assumed to burn again, and the app says so on screen. It is an indicative model, and it says that too.
 
-**Where AWS fits**
+**Where AWS fits** (paste into "How did you use AWS in your project?")
 
-The whole thing is serverless in ap-south-1. An EventBridge schedule starts a Step Functions workflow every hour: Lambda fetches fires and winds, a 3 GB Lambda runs the simulation in about 20 seconds and renders 61 PNG frames plus the forecast grids to S3, served to the browser through CloudFront with an Origin-aware cache policy. The API is FastAPI on Lambda behind API Gateway. Subscribers live in DynamoDB; each gets their own SNS topic so confirmation and unsubscribe are handled by SNS; the alerts step writes the advisory with Ministral 3 on Bedrock. The site is on Amplify Hosting. GitHub Actions deploys the stack with OIDC, no AWS keys stored anywhere. Idle cost is a few rupees a day.
+Ship It - live at https://main.d9com2kyiohi6.amplifyapp.com, everything in ap-south-1 (Mumbai) and everything serverless, so it scales to zero between the hourly runs.
+
+- Amazon EventBridge + AWS Step Functions: an hourly schedule starts a three-step workflow (fetch → simulate → alert) with retries on the fetch step, so one flaky NASA download never loses a run.
+- AWS Lambda: the fetch step reads NASA FIRMS fire detections, Open-Meteo winds and CPCB station readings; a 3 GB function runs the Lagrangian smoke model (about 180,000 parcels, 48 hours, ~25 s) and renders 61 palette-compressed PNG frames, the forecast grid and the source-attribution grid; a third step evaluates every subscriber against the new forecast.
+- Amazon S3 + Amazon CloudFront: run outputs live in a private bucket behind CloudFront with an Origin Access Control, a cache policy keyed on the Origin header (so cached frames always carry CORS headers for the map's fetch) and 7-day lifecycle rules. A replay of a peak day (9 Nov 2025, 4,828 fires) is published to the same bucket.
+- Amazon API Gateway (HTTP API) + Lambda: FastAPI answers place forecasts, advisories, replays and subscriptions, with route-level throttling because the subscribe endpoint creates SNS topics.
+- Amazon DynamoDB + Amazon SNS: one record and one SNS topic per subscriber, so SNS handles email confirmation and unsubscribe; alerts go out when moderate or heavier smoke is expected within 36 hours.
+- Amazon Bedrock (Ministral 3 14B via the Converse API): rewrites the templated advisory in Hindi or Punjabi; the template is sent if the model fails, so an alert is never lost.
+- Amazon CloudWatch: custom metrics from every run (fires detected, districts under heavy smoke, simulation time, stations observed), a dashboard, and alarms when a run fails or no run has succeeded for two hours, delivered by SNS. AWS Budgets: a monthly budget alert.
+- AWS Amplify Hosting for the React + MapLibre site. CloudFormation/SAM for the whole stack; GitHub Actions deploys on every push to main with OIDC, so no AWS keys are stored anywhere. IAM is least-privilege per function (the pipeline can only publish to dhuan-sub-* topics and the Dhuan metric namespace).
+
+Measured cost: about $0.02 per hourly run; the whole deployment costs a few rupees a day, and so far has stayed within the free tier.
 
 **AI tools used:** Claude Code (Claude) wrote most of the code under my direction and review; I chose the problem, the model and its assumptions, the data sources and the architecture, and checked the outputs. Ministral 3 14B on Amazon Bedrock runs inside the product for the Hindi and Punjabi advisories.
 

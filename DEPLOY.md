@@ -25,7 +25,8 @@ aws cloudformation deploy --template-file infra/.packaged.yaml --stack-name dhua
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND --no-fail-on-empty-changeset \
   --parameter-overrides FrontendOrigin=https://main.<app-id>.amplifyapp.com GitHubRepo=HitanshGithub/dhuan \
     ExistingOidcProviderArn=arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com \
-    "WaqiToken=$WAQI_TOKEN"                                             # optional: measured station readings
+    "WaqiToken=$WAQI_TOKEN" \                                           # optional: measured station readings
+    AlertEmail=you@example.com                                          # optional: alarm and budget emails (confirm the SNS email once)
 
 # a replay of a past day, built locally from archived fires and winds and published to the data bucket
 DHUAN_STORAGE=s3 DHUAN_BUCKET=<DataBucketName> uv run --project backend python -m dhuan.replay --date 2025-11-09 \

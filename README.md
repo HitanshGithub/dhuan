@@ -92,8 +92,10 @@ cd frontend && npm run screenshots      # headless Chrome screenshots of the run
 
 One CloudFormation/SAM stack in ap-south-1 (Mumbai): API Gateway + Lambda (FastAPI), a Step Functions workflow on an
 hourly EventBridge schedule, S3 behind CloudFront for the frames, DynamoDB for subscribers, SNS for email, Bedrock
-for advisories. The site is on Amplify Hosting. Every push to `main` redeploys through GitHub Actions, authenticating
-to AWS with OIDC (no keys in GitHub). See [DEPLOY.md](DEPLOY.md).
+for advisories. Every run publishes CloudWatch metrics (fires, districts under heavy smoke, run time) to a dashboard,
+and alarms fire when a run fails or stops; a monthly AWS Budget caps surprises. The site is on Amplify Hosting. Every
+push to `main` redeploys through GitHub Actions, authenticating to AWS with OIDC (no keys in GitHub). See
+[DEPLOY.md](DEPLOY.md).
 
 Idle cost is a few rupees a day: the hourly run is about 90 seconds of Lambda, the frames are a few megabytes, and
 Ministral 3 costs a fraction of a paisa per advisory.
