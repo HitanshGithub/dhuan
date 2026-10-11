@@ -271,7 +271,9 @@ function Outlook({ meta, onFrame }: { meta: RunMeta; onFrame: (f: number) => voi
       <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: peak.heavy > 0 ? '#e05a3a' : '#f3a35a' }} />
       <span>
         <span className="font-semibold text-white">
-          {peak.heavy > 0 ? `Heavy smoke over ${peak.heavy} districts` : `Moderate smoke over ${peak.moderate} districts`}
+          {peak.heavy > 0
+            ? `Heavy smoke over ${peak.heavy} district${peak.heavy === 1 ? '' : 's'}`
+            : `Moderate smoke over ${peak.moderate} district${peak.moderate === 1 ? '' : 's'}`}
         </span>{' '}
         around {when}{peak.heavy > 0 && peak.moderate > peak.heavy ? `, moderate over ${peak.moderate}` : ''}. Worst: {worst}.
       </span>
