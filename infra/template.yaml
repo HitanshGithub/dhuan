@@ -453,6 +453,8 @@ Resources:
                 Resource:
                   - arn:aws:s3:::aws-sam-cli-managed-default*
                   - arn:aws:s3:::aws-sam-cli-managed-default*/*
+                  - !Sub arn:aws:s3:::dhuan-deploy-${AWS::AccountId}
+                  - !Sub arn:aws:s3:::dhuan-deploy-${AWS::AccountId}/*
                   - !GetAtt DataBucket.Arn
                   - !Sub ${DataBucket.Arn}/*
               - Effect: Allow

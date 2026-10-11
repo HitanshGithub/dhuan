@@ -68,7 +68,8 @@ jobs:
             --stack-name "$STACK_NAME" \
             --region "$AWS_REGION" \
             --capabilities CAPABILITY_NAMED_IAM \
-            --resolve-s3 \
+            --s3-bucket "${{ vars.AWS_ARTIFACT_BUCKET }}" \
+            --s3-prefix dhuan \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
             --parameter-overrides \

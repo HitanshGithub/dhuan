@@ -57,6 +57,7 @@ repository and this stack's resources). Repository variables needed:
 |---|---|
 | `AWS_DEPLOY_ROLE_ARN` | `GitHubDeployRoleArn` output |
 | `AWS_OIDC_PROVIDER_ARN` | `arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com` (an account has one provider; this stack reuses it) |
+| `AWS_ARTIFACT_BUCKET` | `dhuan-deploy-<account-id>`, the bucket the Lambda package is uploaded to (the deploy role may write only there and to the data bucket) |
 
 GitHub issues OIDC subjects with immutable ids (`repo:owner@123/repo@456:ref:...`); the trust policy accepts
 that and the plain `repo:owner/repo:*` form.
