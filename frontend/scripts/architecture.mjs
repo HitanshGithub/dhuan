@@ -34,11 +34,11 @@ flowchart LR
 </body></html>`
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true })
-const page = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 2 })
+const page = await browser.newPage({ viewport: { width: 2600, height: 1000 }, deviceScaleFactor: 2 })
 await page.setContent(html, { waitUntil: "load" })
 await page.waitForSelector('svg')
 await page.waitForTimeout(800)
 const box = await page.locator("#d svg").boundingBox()
-await page.screenshot({ path: 'screenshots/architecture.png', clip: { x: 0, y: 0, width: Math.ceil(box.x + box.width + 32), height: Math.ceil(box.y + box.height + 28) } })
+await page.screenshot({ path: 'screenshots/architecture.png', clip: { x: 0, y: 0, width: Math.ceil(box.x + box.width + 380), height: Math.ceil(box.y + box.height + 28) } })
 console.log('saved screenshots/architecture.png', Math.ceil(box.width), 'x', Math.ceil(box.height))
 await browser.close()
