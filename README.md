@@ -16,6 +16,8 @@ Built solo in a weekend for WeMakeDevs × AWS **Environmental Hacks** (8–11 Oc
 
 ## How it works
 
+![Architecture: EventBridge, Step Functions, Lambda, S3, CloudFront, API Gateway, DynamoDB, SNS, Bedrock, CloudWatch, Amplify](frontend/screenshots/architecture.png)
+
 ```mermaid
 flowchart LR
     EB[EventBridge<br/>every hour] --> SF[Step Functions]
